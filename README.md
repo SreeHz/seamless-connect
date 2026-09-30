@@ -130,6 +130,45 @@ That's it! From now on, whenever you join the hotspot or your home Wi-Fi:
 
 ---
 
+## 💻 Compatibility Matrix
+
+Seamless Connect is designed from the ground up to be independent of phone OEM skins and Linux desktop environments.
+
+### Android Compatibility
+| Android Version | API Level | Status | Notes |
+| :--- | :--- | :--- | :--- |
+| **Android 16** (LineageOS 23+) | API 36 | ✅ Fully Verified | Tested on Motorola Moto G57 Power (`mumba_g`) |
+| **Android 15 (Vanilla Ice Cream)** | API 35 | ✅ Supported | Native support for wireless debugging & root FTP |
+| **Android 14 (Upside Down Cake)** | API 34 | ✅ Supported | Target SDK level |
+| **Android 13 (Tiramisu)** | API 33 | ✅ Supported | Full Magisk & KernelSU compatibility |
+| **Android 12 / 12L (Snow Cone)** | API 31 / 32 | ✅ Supported | Full support |
+| **Android 11 (Red Velvet Cake)** | API 30 | ✅ Supported | Classic TCP and mDNS discovery supported |
+| **Android 10 (Q)** | API 29 | ✅ Supported | Supported |
+| **Android 9 (Pie) / 8.0 (Oreo)** | API 26–28 | ✅ Supported | Minimum supported version (`minSdkVersion 26`) |
+
+**Supported Root Solutions**:
+- **Magisk**: v25.0 – v30.7+ (Recommended)
+- **KernelSU**: v0.6.0+
+- **APatch**: v0.10.0+
+- **BusyBox**: Built into Magisk/KernelSU (provides `tcpsvd` and `ftpd`).
+
+### Linux Compatibility
+| Distribution | Versions | Desktop Environments / File Managers | Status |
+| :--- | :--- | :--- | :--- |
+| **Ubuntu / Kubuntu** | 20.04 LTS, 22.04 LTS, 24.04 LTS+ | **Dolphin** (KDE), **Nautilus** (GNOME) | ✅ Fully Verified |
+| **Linux Mint** | 20.x, 21.x, 22.x+ | **Nemo** (Cinnamon), **Caja** (MATE) | ✅ Fully Verified |
+| **Debian** | 11 (Bullseye), 12 (Bookworm)+ | **Dolphin**, **Nautilus**, **Thunar** | ✅ Supported |
+| **Fedora / RHEL** | 38, 39, 40, 41+ | **Dolphin** (KDE), **Nautilus** (GNOME) | ✅ Supported |
+| **Arch Linux / Manjaro** | Rolling (All) | **Dolphin**, **Thunar** (XFCE), **PCManFM** | ✅ Supported |
+| **openSUSE** | Tumbleweed, Leap 15.x+ | **Dolphin**, **Nautilus** | ✅ Supported |
+
+**Supported File Managers & Places Engines**:
+- **KDE Plasma (Dolphin)**: Auto-synchronizes `~/.local/share/user-places.xbel` XML. Dolphin's `KDirWatch` updates the sidebar in real time without restarting the file manager.
+- **GTK File Managers (Nemo, Nautilus, Thunar, PCManFM)**: Auto-synchronizes `~/.config/gtk-3.0/bookmarks`.
+- **Network Engine**: Compatible with any Linux system running **NetworkManager** (standard on almost all desktop distributions).
+
+---
+
 ## 🧹 The Self-Cleaning Watchdog
 
 What happens when you leave? You can't tell the phone to stop once you've disconnected.

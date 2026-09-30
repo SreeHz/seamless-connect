@@ -65,7 +65,7 @@ echo "--> [4/4] D8 desugaring and dexing..."
 "$ZIPALIGN" -f 4 "$BUILD_DIR/app/unaligned.apk" "$BUILD_DIR/release/SeamlessConnect.apk"
 
 # Sign APK
-KEYSTORE="$BUILD_DIR/debug.keystore"
+KEYSTORE="$PROJECT_DIR/android/debug.keystore"
 if [ ! -f "$KEYSTORE" ]; then
     keytool -genkeypair -v -keystore "$KEYSTORE" -alias androiddebugkey \
         -keypass android -storepass android -keyalg RSA -keysize 2048 \

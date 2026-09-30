@@ -38,6 +38,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setStatusBarColor(Color.parseColor("#0B0F19"));
+        getWindow().setNavigationBarColor(Color.parseColor("#0B0F19"));
         setContentView(R.layout.activity_main);
 
         initViews();

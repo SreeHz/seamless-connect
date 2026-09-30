@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#1E88E5</color>
-    <color name="primary_dark">#1565C0</color>
-    <color name="accent">#00E676</color>
-    <color name="bg_dark">#121212</color>
-    <color name="card_dark">#1E1E1E</color>
-    <color name="card_header">#2A2A2A</color>
+    <color name="primary">#0B0F19</color>
+    <color name="primary_dark">#0B0F19</color>
+    <color name="accent">#00E5FF</color>
+    <color name="bg_dark">#0B0F19</color>
+    <color name="card_dark">#161B22</color>
+    <color name="card_header">#1E293B</color>
     <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#B0B0B0</color>
-    <color name="text_muted">#757575</color>
-    <color name="status_green">#4CAF50</color>
-    <color name="status_red">#E53935</color>
-    <color name="status_orange">#FB8C00</color>
-    <color name="btn_start">#2E7D32</color>
-    <color name="btn_stop">#C62828</color>
-    <color name="btn_neutral">#37474F</color>
+    <color name="text_secondary">#9CA3AF</color>
+    <color name="text_muted">#6B7280</color>
+    <color name="status_green">#10B981</color>
+    <color name="status_red">#EF4444</color>
+    <color name="status_orange">#F59E0B</color>
+    <color name="btn_start">#10B981</color>
+    <color name="btn_stop">#EF4444</color>
+    <color name="btn_neutral">#374151</color>
 </resources>
