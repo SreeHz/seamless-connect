@@ -20,6 +20,7 @@ import java.util.List;
 public class MainActivity extends Activity {
 
     private TextView tvFtpStatus;
+    private TextView tvFtpStatusBadge;
     private TextView tvAdbStatus;
     private TextView tvNetworkDetails;
     private Button btnStartService;
@@ -41,6 +42,7 @@ public class MainActivity extends Activity {
 
         initViews();
         setupListeners();
+        NetworkHelper.startDiscoveryResponder();
     }
 
     @Override
@@ -51,6 +53,7 @@ public class MainActivity extends Activity {
 
     private void initViews() {
         tvFtpStatus = findViewById(R.id.tv_ftp_status);
+        tvFtpStatusBadge = findViewById(R.id.tv_ftp_status_badge);
         tvAdbStatus = findViewById(R.id.tv_adb_status);
         tvNetworkDetails = findViewById(R.id.tv_network_details);
         btnStartService = findViewById(R.id.btn_start_service);
@@ -121,15 +124,25 @@ public class MainActivity extends Activity {
 
     private void updateStateUi(NetworkHelper.ServiceState state) {
         if (state.isFtpRunning) {
-            tvFtpStatus.setText("FTP Server: RUNNING (Port " + state.ftpPort + ")");
-            tvFtpStatus.setTextColor(Color.parseColor("#4CAF50"));
+            if (tvFtpStatusBadge != null) {
+                tvFtpStatusBadge.setText("● FTP RUNNING");
+                tvFtpStatusBadge.setTextColor(Color.parseColor("#10B981"));
+                tvFtpStatusBadge.setBackgroundResource(R.drawable.bg_badge_online);
+            }
+            tvFtpStatus.setText("FTP Server Active (Port " + state.ftpPort + ")");
+            tvFtpStatus.setTextColor(Color.parseColor("#FFFFFF"));
         } else {
-            tvFtpStatus.setText("FTP Server: STOPPED");
-            tvFtpStatus.setTextColor(Color.parseColor("#FB8C00"));
+            if (tvFtpStatusBadge != null) {
+                tvFtpStatusBadge.setText("○ FTP STOPPED");
+                tvFtpStatusBadge.setTextColor(Color.parseColor("#F59E0B"));
+                tvFtpStatusBadge.setBackgroundResource(R.drawable.bg_badge_offline);
+            }
+            tvFtpStatus.setText("Ready for Wireless Mounting");
+            tvFtpStatus.setTextColor(Color.parseColor("#9CA3AF"));
         }
 
-        tvAdbStatus.setText("Wireless ADB: Port " + state.adbPort + " (Active)");
-        tvNetworkDetails.setText("Hotspot IP: " + state.hotspotIp + " | Interface: " + state.iface);
+        tvAdbStatus.setText("ADB : " + state.adbPort);
+        tvNetworkDetails.setText("IP: " + state.hotspotIp + "  •  Iface: " + state.iface + "  •  Port: " + state.ftpPort);
     }
 
     private void updateAuthorizedUi(List<DeviceManager.Device> devices) {

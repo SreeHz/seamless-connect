@@ -1,215 +1,181 @@
 # 🐧🤖 Seamless Connect
 
 > **Build your own "Apple Ecosystem" Continuity with Linux, Android, and Open Standards.**  
-> Handsfree Wireless ADB + Instant Root FTP File Sharing with Hardware MAC-Locked Security & Dolphin Places Auto-Mount.
+> Zero-Click Wireless ADB + Instant Root FTP File Sharing with Hardware MAC Security & Dolphin Places Auto-Mount.  
+> Works seamlessly on **Phone Hotspot** and **Shared Wi-Fi Networks**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Android Root](https://img.shields.io/badge/Root-Magisk%20%7C%20KernelSU%20%7C%20APatch-brightgreen.svg)](#android-phone-setup)
-[![Linux Compatibility](https://img.shields.io/badge/Linux-KDE%20Dolphin%20%7C%20Nemo%20%7C%20Nautilus-orange.svg)](#linux-laptop-setup)
+[![Android Root](https://img.shields.io/badge/Root-Magisk%20%7C%20KernelSU%20%7C%20APatch-brightgreen.svg)](#-android-phone-setup)
+[![Linux Compatibility](https://img.shields.io/badge/Linux-KDE%20Dolphin%20%7C%20Nemo%20%7C%20Nautilus-orange.svg)](#-linux-laptop-setup)
+[![Network Mode](https://img.shields.io/badge/Network-Hotspot%20%2B%20Home%20Wi--Fi%20(LAN)-purple.svg)](#-two-network-modes)
 
 ---
 
-## 🌟 The Vision
+## 💥 The Manifesto: Breaking the "Ecosystem" Myth
 
-Apple charges an arm and a leg for "Continuity" and "AirDrop." Seamless Connect brings that exact seamless, zero-click experience to **Linux** and **rooted Android**:
+Certain Cupertino-based companies love to boast about their "Ecosystem."  
+*AirDrop this. Continuity that. Your phone rings on your laptop. Your cloud bills pile up.*  
+They sell the illusion that "it just works" is proprietary magic requiring a $2,500 laptop, an overpriced phone, and total surrender to a walled garden.
 
-1. **Zero-Click Wireless ADB (TCP/IP)**: The moment your laptop connects to your phone's Wi-Fi hotspot, ADB connects automatically over port 5555. No cables. No prompts.
-2. **Instant Handsfree File Sharing (Root FTP)**: Your phone's entire filesystem mounts in your Linux file manager (KDE Dolphin, Nemo, Nautilus) under a pinned **"Phone (FTP)"** bookmark.
-3. **Hardware MAC-Locked Security**: BusyBox `ftpd` has no login prompt (`-A` flag for instant passwordless root access). Security is strictly enforced at the Linux kernel level via `iptables`: **only incoming packets from your authorized laptop's Wi-Fi MAC address are accepted; all other devices on the hotspot are dropped immediately.**
-4. **Dynamic IP Adaptation (Dolphin & GTK Places Sync)**: Phone hotspots assign random subnets on every boot (e.g. `10.x.x.1`, `192.168.43.1`). The Linux client dynamically updates Dolphin's `user-places.xbel` and GTK's bookmarks in real-time. You never have to re-enter an IP address.
-5. **Self-Cleaning Watchdog**: An intelligent phone-side background watchdog pings your laptop every 30 seconds. If you leave the hotspot, it shuts down the FTP daemon, cleans up all firewall rules, and triggers an Android MediaStore rescan.
-6. **Android Companion App**: Manage authorized laptops, view live service status, scan connected hotspot clients, and authorize new laptops with a single tap.
+**We reject that myth.**
+
+There is **nothing** that a proprietary walled garden can do that a Linux machine and a rooted Android phone cannot do better, faster, and completely handsfree. Under the glossy marketing, "Continuity" is just networking, standard protocols, and kernel firewalling.
+
+**Seamless Connect** proves this. Two pillars hold it up:
+
+1. **Handsfree Wireless ADB (TCP/IP)**: The moment your laptop and phone see each other, Wireless ADB reconnects automatically. No USB cables. No hunting for dongles. No typing IP addresses.
+2. **Instant Handsfree Root File Sharing (FTP + Places Sync)**: Your phone's entire filesystem mounts in your Linux file manager (KDE Dolphin, Nemo, Nautilus) under a pinned **"Phone (FTP)"** bookmark. Files fly back and forth wirelessly at maximum Wi-Fi speeds.
+
+No corporate gatekeepers. No subscriptions. Just Linux, Android, and open source audacity.
 
 ---
 
-## 🏗️ Architecture
+## 🌐 Two Network Modes (Always Ready)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as User Laptop
-    participant NM as NetworkManager (Laptop)
-    participant Dispatcher as Dispatcher Scripts
-    participant ADB as Wireless ADB (5555)
-    participant PhoneDaemon as Seamless Daemon (Phone)
-    participant Iptables as iptables Firewall
-    participant Dolphin as Dolphin / GTK File Manager
+Whether you are traveling or sitting at your desk, Seamless Connect is always ready:
 
-    User->>NM: Connect to Phone Hotspot
-    NM->>Dispatcher: Trigger (99-seamless-adb.sh)
-    Dispatcher->>ADB: adb connect <Gateway>:5555
-    NM->>Dispatcher: Trigger (99-seamless-ftp.sh)
-    Dispatcher->>PhoneDaemon: adb shell "seamless-ctl start"
-    PhoneDaemon->>Iptables: Inject MAC-whitelist (ACCEPT laptop MAC, DROP others)
-    PhoneDaemon->>PhoneDaemon: Spawn BusyBox tcpsvd + ftpd (-w -A /)
-    Dispatcher->>Dolphin: Update user-places.xbel / bookmarks to <Gateway>:2121
-    User->>Dolphin: Click "Phone (FTP)" -> Instant Root Access!
-    Note over User,PhoneDaemon: When Laptop leaves hotspot...
-    PhoneDaemon->>PhoneDaemon: Watchdog misses 3 pings (90s)
-    PhoneDaemon->>Iptables: Flush port 2121 rules
-    PhoneDaemon->>PhoneDaemon: Kill ftpd + Trigger MediaStore rescan
+| Connection Scenario | How it Works | Detection Mechanism |
+| :--- | :--- | :--- |
+| **1. Phone Hotspot (On the Go)** | Laptop connects to Phone's Wi-Fi hotspot. The phone is the default gateway. | NetworkManager dispatcher detects default gateway and connects immediately via fast-path. |
+| **2. Same Wi-Fi Network (Home / Office LAN)** | Both laptop and phone connect to the same home/office Wi-Fi router. Phone is a peer device on the subnet. | Laptop broadcasts `SEAMLESS_DISCOVER` on UDP `21210`. The phone's companion app replies with its LAN IP. Connection is established instantly! |
+
+---
+
+## 🛡️ The Bouncer: Hardware MAC-Locked Security
+
+Unlike standard FTP servers that require clumsy passwords (or worse, leave doors open to anyone on the Wi-Fi), Seamless Connect uses **Linux Kernel Netfilter (`iptables`)** directly on the phone:
+
+- **Passwordless Root Access**: BusyBox `ftpd` runs with `-A` (anonymous root mode), allowing zero-click browsing.
+- **Hardware MAC Whitelist**: `iptables` inspects incoming packets at the physical layer:
+  ```bash
+  iptables -I INPUT 1 -i <iface> -p tcp --dport 2121 -m mac --mac-source <LAPTOP_MAC> -j ACCEPT
+  iptables -A INPUT -i <iface> -p tcp --dport 2121 -j DROP
+  ```
+  **Only packets originating from your authorized laptop's Wi-Fi hardware MAC address are accepted.** Any other phone, tablet, or neighbor on the network is dropped silently at the kernel level.
+- **Dynamic DHCP Immunity**: Even if your laptop receives a new IP address every time it connects, your hardware MAC remains constant. You never have to re-authenticate.
+
+---
+
+## 📱 Material Design Android Companion App
+
+Seamless Connect includes a native Android Companion App ([`SeamlessConnect.apk`](build/release/SeamlessConnect.apk)) featuring a modern Material Design OLED dark theme:
+
+```text
+┌────────────────────────────────────────────────────────┐
+│  Seamless Connect                      [ REFRESH ]     │
+│  Wireless Continuity • ADB & Root FTP                  │
+├────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  ● FTP RUNNING                         ADB: 5555 │  │
+│  │  FTP Server Active (Port 2121)                   │  │
+│  │  IP: 10.236.58.173 • Iface: wlan2 • Port: 2121   │  │
+│  │                                                  │  │
+│  │  [▶ Start FTP]     [⏹ Stop FTP]      [🔄 Rescan] │  │
+│  └──────────────────────────────────────────────────┘  │
+│  🌐 LAN & Hotspot Auto-Discovery Active (UDP 21210)    │
+├────────────────────────────────────────────────────────┤
+│  Connected Network Devices                             │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  💻 10.236.58.241                                │  │
+│  │     f8:3d:c6:d8:84:9a • REACHABLE                │  │
+│  │                                 [ AUTHORIZED ✓ ] │  │
+│  └──────────────────────────────────────────────────┘  │
+│                                                        │
+│  Authorized Laptops (Firewall)            [+ Add MAC]  │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  🛡️ Work ThinkPad                                │  │
+│  │     f8:3d:c6:d8:84:9a                   [Revoke] │  │
+│  └──────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘
 ```
 
+- **Live Service Status**: Real-time FTP and ADB port monitoring with glowing status badges.
+- **1-Tap Device Authorization**: Scans connected hotspot/LAN clients from kernel ARP tables (`ip neigh`). Simply tap **`+ Authorize`** on your laptop!
+- **Auto-Discovery Beacon**: Background UDP responder on port `21210` allows laptops on the same Wi-Fi router to find your phone without manual IP lookup.
+- **MediaStore Auto-Rescan**: Trigger or automate media library refresh so uploaded music and photos appear immediately in Android gallery and audio apps.
+
 ---
 
-## 📱 Android Phone Setup
+## 🚀 Quick Setup Guide
 
-### Prerequisites
-- Rooted Android device running **Magisk 25+**, **KernelSU**, or **APatch**.
-- BusyBox installed (included by default in Magisk / KernelSU).
-- Wi-Fi Hotspot enabled.
+### 1. Android Phone Setup
+1. **Download & Flash Magisk Module**:
+   - Grab `seamless_connect_magisk.zip` from [Releases](https://github.com/SreeHz/seamless-connect/releases) or compile using `./build.sh`.
+   - Flash in **Magisk**, **KernelSU**, or **APatch**, and reboot.
+   *(This installs `SeamlessConnect.apk`, `seamless-ctl`, and boot persistence).*
+2. **Open Seamless Connect**:
+   - Grant Root (Superuser) permissions when prompted.
+   - Connect your laptop to your phone's hotspot (or connect both to your home Wi-Fi).
+   - Under **Connected Network Devices**, tap **`+ Authorize`** next to your laptop.
 
-### Installation Options
+---
 
-#### Option A: Flash the Magisk / KernelSU Module (Recommended)
-1. Download `seamless_connect_magisk.zip` from [Releases](https://github.com/seamlessconnect/releases) or build it using `./build.sh`.
-2. Flash the zip in **Magisk**, **KernelSU**, or **APatch** app.
-3. Reboot your phone. The `Seamless Connect` app and `seamless-ctl` command-line utility will be installed automatically.
-
-#### Option B: Standalone APK & CLI
-1. Install `SeamlessConnect.apk` using ADB or your favorite file manager:
+### 2. Linux Laptop Setup
+1. **Clone and Install**:
    ```bash
-   adb install SeamlessConnect.apk
+   git clone https://github.com/SreeHz/seamless-connect.git
+   cd seamless-connect/linux
+   sudo ./install.sh
    ```
-2. Grant Root permissions to Seamless Connect when prompted.
+2. **What this does**:
+   - Installs `seamless-discover` and `seamless-update-places` into `/usr/local/bin/`.
+   - Configures NetworkManager dispatchers (`99-seamless-adb.sh` and `99-zz-seamless-ftp.sh`).
+   - Registers the **"Phone (FTP)"** pinned bookmark in **KDE Dolphin** (`user-places.xbel`) and **GTK file managers** (Nemo, Nautilus, Thunar).
+   - Prints your laptop's Wi-Fi hardware MAC address.
+
+That's it! From now on, whenever you join the hotspot or your home Wi-Fi:
+- ADB connects automatically.
+- The phone starts the FTP server.
+- Click **"Phone (FTP)"** in Dolphin or your file manager to browse the phone's entire root filesystem!
 
 ---
 
-## 💻 Linux Laptop Setup
+## 🧹 The Self-Cleaning Watchdog
 
-### Prerequisites
-- Linux distribution running **NetworkManager** (Ubuntu, Kubuntu, Fedora, Arch, Linux Mint, Debian, etc.).
-- File manager: **KDE Dolphin** (KDE Plasma) or **GTK-based** (Nautilus, Nemo, Thunar, PCManFM).
-- Android platform-tools (`adb`).
+What happens when you leave? You can't tell the phone to stop once you've disconnected.
 
-### 1-Command Installation
-Run the installer script on your laptop:
-
-```bash
-git clone https://github.com/seamlessconnect/seamless_connect.git
-cd seamless_connect/linux
-sudo ./install.sh
-```
-
-The installer will:
-1. Detect your active graphical user account.
-2. Install `seamless-update-places` into `/usr/local/bin/`.
-3. Install NetworkManager dispatcher scripts (`99-seamless-adb.sh` and `99-zz-seamless-ftp.sh`) into `/etc/NetworkManager/dispatcher.d/`.
-4. Create the initial **Phone (FTP)** pinned place in Dolphin and GTK file managers.
-5. Print your laptop's **Wi-Fi MAC address**.
+The phone monitors itself:
+- A phone-side watchdog ping tests the laptop every 30 seconds.
+- It checks ARP neighbor entries (tolerant to Wi-Fi power-save sleep states) and ICMP echo replies.
+- After 3 consecutive misses (90s), the watchdog tears down the FTP daemon, clears the firewall rules, and triggers an Android MediaStore rescan.
 
 ---
 
-## 🔐 Authorizing Your Laptop
+## ⚙️ CLI Management (`seamless-ctl`)
 
-Seamless Connect will refuse any FTP connections until your laptop's Wi-Fi hardware MAC address is added to the phone's whitelist.
-
-### Method 1: Using the Android Companion App (Easiest)
-1. Turn on your phone's Hotspot and connect your laptop to it.
-2. Open the **Seamless Connect** app on your phone.
-3. Under **Connected Hotspot Devices**, you will see your laptop listed with its IP and MAC.
-4. Tap **`+ Authorize`**, give your laptop a nickname (e.g. `ThinkPad Z13`), and tap **Authorize**.
-5. The firewall is updated live in kernel space!
-
-### Method 2: Via Root Terminal / ADB (`seamless-ctl`)
-```bash
-# On phone (in Termux with su) or via ADB shell:
-su -c "seamless-ctl add-mac <YOUR_LAPTOP_MAC> 'Work Laptop'"
-```
-
-To list authorized MAC addresses:
-```bash
-su -c "seamless-ctl list-macs"
-```
-
----
-
-## 📂 Pinned Location in Dolphin & GTK File Managers
-
-When you join your phone's hotspot:
-- In **KDE Dolphin**: A pinned item named **"Phone (FTP)"** appears under the *Places* panel. Clicking it opens `ftp://phone:phone@<HOTSPOT_IP>:2121/` with full root read/write access.
-- In **Nemo / Nautilus / Thunar**: A bookmark named **"Phone (FTP)"** in the left sidebar connects to the phone.
-- **No IP headaches**: When your phone's hotspot IP changes (e.g. from `10.236.58.173` to `192.168.43.1`), the dispatcher script automatically detects the new gateway and updates the bookmark XML without requiring any user action.
-
----
-
-## 🛠️ CLI Management (`seamless-ctl`)
-
-On the phone, you can run `seamless-ctl` from any root shell:
+For terminal power users, Seamless Connect includes a comprehensive root CLI on Android:
 
 ```bash
-seamless-ctl status            # Show live service status, ports, and connected clients
-seamless-ctl start             # Start the FTP daemon manually
-seamless-ctl stop              # Stop the FTP daemon manually
-seamless-ctl restart           # Reload configuration and restart firewall
-seamless-ctl clients           # Scan ARP table for connected hotspot devices
-seamless-ctl list-macs         # List all authorized MAC addresses
-seamless-ctl add-mac <mac>     # Authorize a new MAC address
-seamless-ctl del-mac <mac>     # Revoke a MAC address
-seamless-ctl rescan-media      # Force Android MediaStore library update
-```
-
----
-
-## ⚙️ Configuration (`seamless.conf`)
-
-Stored on the phone at `/data/adb/seamless_connect/seamless.conf`:
-
-```bash
-# FTP Server Port
-PORT=2121
-
-# Hotspot interface: "auto" detects wlan0, wlan1, wlan2, ap0 dynamically
-IFACE="auto"
-
-# Watchdog check interval (seconds)
-WATCH_INTERVAL=30
-
-# Misses before auto-teardown when laptop leaves
-WATCH_MISSES=3
-
-# Root directory for media scanner upload detection
-SCAN_ROOT="/sdcard/"
-
-# Ensure ADB TCP/IP listening on boot (port 5555)
-ENABLE_ADB_PERSIST=1
+su -c "seamless-ctl status"            # View live status, ports, clients & firewall
+su -c "seamless-ctl start"             # Start FTP server manually
+su -c "seamless-ctl stop"              # Stop FTP server manually
+su -c "seamless-ctl clients"           # View connected hotspot/LAN clients
+su -c "seamless-ctl list-macs"         # List authorized hardware MACs
+su -c "seamless-ctl add-mac <MAC> [N]" # Authorize a laptop MAC address
+su -c "seamless-ctl del-mac <MAC>"     # Revoke a laptop MAC address
+su -c "seamless-ctl rescan-media"      # Force Android MediaStore library rescan
 ```
 
 ---
 
 ## 🏗️ Building from Source
 
-The repository includes a self-contained build script that compiles both the Android APK and the Magisk module using command-line SDK tools:
+Build the complete Android Companion App and Magisk Module with a single command:
 
 ```bash
-# Ensure ANDROID_HOME or ANDROID_SDK_ROOT is set
+# Requires Java 17 and Android SDK build-tools
 ./build.sh
 ```
 
-Output files will be generated in `build/release/`:
-- `build/release/SeamlessConnect.apk`
-- `build/release/seamless_connect_magisk.zip`
+Artifacts are produced in `build/release/`:
+- `SeamlessConnect.apk`
+- `seamless_connect_magisk.zip`
 
 ---
 
-## 💡 Troubleshooting & FAQs
+## 📜 License & Community
 
-#### Q: Dolphin shows "Connection Refused" or hangs.
-1. Check that your laptop's Wi-Fi MAC address is authorized in the app or via `seamless-ctl list-macs`.
-2. Verify FTP server is running: `adb shell "su -c 'seamless-ctl status'"`.
-3. Verify firewall rules: `adb shell "su -c 'iptables -S INPUT | grep 2121'"`.
+Distributed under the [MIT License](LICENSE).  
+Built for Linux users, Android enthusiasts, and anyone who refuses to pay an "ecosystem tax" for basic functionality.
 
-#### Q: New photos or music transferred via FTP don't appear in Android gallery/music apps.
-FTP writes directly to the Linux filesystem as root, bypassing the Android `MediaProvider`. Seamless Connect includes an automated upload detector that compares file modification times against a baseline marker. As soon as uploads finish, it triggers:
-```bash
-content call --uri content://media --method scan_volume --arg external_primary
-```
-You can also manually trigger a scan from the companion app or with `seamless-ctl rescan-media`.
-
-#### Q: What about Windows support?
-Windows support is planned for future releases using Windows PowerShell / Task Scheduler scripts listening for Wi-Fi SSID change events to update Windows Explorer network locations.
-
----
-
-## 📜 License
-Licensed under the [MIT License](LICENSE). Contributions, bug reports, and pull requests are welcome!
+Contributions, feature requests, and pull requests are warmly welcomed!

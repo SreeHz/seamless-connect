@@ -3,10 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="12dp"
-    android:layout_marginBottom="8dp"
-    android:background="@color/card_dark"
+    android:padding="14dp"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_card"
     android:gravity="center_vertical">
+
+    <ImageView
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:src="@drawable/ic_laptop"
+        android:layout_marginEnd="12dp"
+        android:contentDescription="Laptop" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -19,9 +26,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="10.236.58.241"
-            android:textSize="15sp"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/text_primary" />
+            android:textColor="#F3F4F6" />
 
         <TextView
             android:id="@+id/tv_client_mac"
@@ -30,7 +37,7 @@
             android:text="f8:3d:c6:d8:84:9a"
             android:textSize="13sp"
             android:fontFamily="monospace"
-            android:textColor="@color/text_secondary"
+            android:textColor="#9CA3AF"
             android:layout_marginTop="2dp" />
 
         <TextView
@@ -39,18 +46,19 @@
             android:layout_height="wrap_content"
             android:text="REACHABLE • wlan2"
             android:textSize="11sp"
-            android:textColor="@color/text_muted"
+            android:textColor="#6B7280"
             android:layout_marginTop="2dp" />
     </LinearLayout>
 
     <Button
         android:id="@+id/btn_auth_client"
         android:layout_width="wrap_content"
-        android:layout_height="36dp"
+        android:layout_height="38dp"
         android:text="+ Authorize"
         android:textSize="12sp"
-        android:textColor="@color/text_primary"
-        android:background="@color/btn_start"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp" />
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/bg_button_accent"
+        android:paddingLeft="14dp"
+        android:paddingRight="14dp" />
 </LinearLayout>

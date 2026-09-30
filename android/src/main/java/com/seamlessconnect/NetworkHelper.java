@@ -2,10 +2,15 @@ package com.seamlessconnect;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.util.ArrayList;
 import java.util.List;
 
 public class NetworkHelper {
+
+    private static Thread discoveryThread = null;
+    private static volatile boolean discoveryRunning = false;
 
     public static class HotspotClient {
         public String ip;
@@ -30,6 +35,39 @@ public class NetworkHelper {
         public String hotspotIp;
         public String iface;
         public int activePid;
+    }
+
+    public static synchronized void startDiscoveryResponder() {
+        if (discoveryRunning) return;
+        discoveryRunning = true;
+        discoveryThread = new Thread(() -> {
+            DatagramSocket socket = null;
+            try {
+                socket = new DatagramSocket(21210);
+                socket.setBroadcast(true);
+                byte[] buf = new byte[1024];
+                while (discoveryRunning) {
+                    DatagramPacket packet = new DatagramPacket(buf, buf.length);
+                    socket.receive(packet);
+                    String msg = new String(packet.getData(), 0, packet.getLength()).trim();
+                    if (msg.startsWith("SEAMLESS_DISCOVER")) {
+                        ServiceState state = getServiceState();
+                        String reply = "SEAMLESS_OFFER:" + state.hotspotIp + ":" + state.ftpPort;
+                        byte[] replyBytes = reply.getBytes();
+                        DatagramPacket replyPacket = new DatagramPacket(
+                                replyBytes, replyBytes.length, packet.getAddress(), packet.getPort()
+                        );
+                        socket.send(replyPacket);
+                    }
+                }
+            } catch (Exception ignored) {
+            } finally {
+                if (socket != null && !socket.isClosed()) socket.close();
+                discoveryRunning = false;
+            }
+        });
+        discoveryThread.setDaemon(true);
+        discoveryThread.start();
     }
 
     public static ServiceState getServiceState() {
@@ -71,9 +109,9 @@ public class NetworkHelper {
             }
         }
 
-        // Detect Hotspot IP & Interface
+        // Universal IP & Interface detection (Hotspot AP or Client Wi-Fi)
         RootHelper.CommandResult netRes = RootHelper.runSu(
-                "ip -4 route show 2>/dev/null | awk '!/default/ && !/rmnet/ && !/lo/ && /src/ {print $3, $NF}' | head -n 1");
+                "ip -4 addr show 2>/dev/null | awk '/inet / && !/127\\.0\\.0\\.1/ && !/rmnet/ {split($2,a,\"/\"); print $NF, a[1]}' | head -n 1");
         if (!netRes.stdout.isEmpty()) {
             String[] parts = netRes.stdout.split("\\s+");
             if (parts.length >= 2) {
@@ -94,7 +132,6 @@ public class NetworkHelper {
             String[] lines = res.stdout.split("\n");
             for (String line : lines) {
                 line = line.trim();
-                // e.g.: 10.236.58.241 dev wlan2 lladdr f8:3d:c6:d8:84:9a REACHABLE
                 String[] tokens = line.split("\\s+");
                 if (tokens.length >= 5) {
                     String ip = tokens[0];

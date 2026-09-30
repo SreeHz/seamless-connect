@@ -17,9 +17,16 @@ esac
 PORT=2121
 log() { logger -t seamless-ftp "$*"; }
 
-# Detect default gateway (phone hotspot address)
+# Detect default gateway and resolve Phone IP (Hotspot or LAN discovery)
 GW=$(ip route show default dev "$INTERFACE" 2>/dev/null | awk '/default/{print $3; exit}')
-[ -z "$GW" ] && { log "No gateway found on $INTERFACE — skipping"; exit 0; }
+PHONE_IP="$GW"
+DISCOVER_BIN="/usr/local/bin/seamless-discover"
+if [ -x "$DISCOVER_BIN" ]; then
+    RESOLVED_IP=$(python3 "$DISCOVER_BIN" "$GW" 2>/dev/null)
+    [ -n "$RESOLVED_IP" ] && PHONE_IP="$RESOLVED_IP"
+fi
+
+[ -z "$PHONE_IP" ] && { log "No phone IP found on $INTERFACE — skipping"; exit 0; }
 
 # Dynamically detect active desktop user
 detect_active_user() {
@@ -56,24 +63,24 @@ adb_user() {
     as_user "$ADB_BIN" "$@"
 }
 
-# Verify ADB connection to this specific gateway
+# Verify ADB connection to this specific phone IP
 connected() {
-    adb_user devices | grep -q "^${GW}:5555[[:space:]]*device"
+    adb_user devices | grep -q "^${PHONE_IP}:5555[[:space:]]*device"
 }
 
-log "Waiting for ADB connection to ${GW}:5555..."
+log "Waiting for ADB connection to ${PHONE_IP}:5555..."
 for _ in 1 2 3 4 5 6; do
     connected && break
     sleep 2
 done
 
 if ! connected; then
-    log "ADB not connected to ${GW}:5555 — skipping FTP start"
+    log "ADB not connected to ${PHONE_IP}:5555 — skipping FTP start"
     exit 0
 fi
 
 # Start (or refresh) phone-side FTP server
-OUT=$(adb_user -s "${GW}:5555" shell su -c "
+OUT=$(adb_user -s "${PHONE_IP}:5555" shell su -c "
     if [ -x /data/adb/seamless_connect/ftp-server.sh ]; then
         /data/adb/seamless_connect/ftp-server.sh start
     elif [ -x /data/adb/ftp-server.sh ]; then
@@ -82,17 +89,17 @@ OUT=$(adb_user -s "${GW}:5555" shell su -c "
         echo 'Seamless FTP script not found on device'
     fi
 " 2>&1)
-log "ftp-server start on ${GW}: ${OUT}"
+log "ftp-server start on ${PHONE_IP}: ${OUT}"
 
-# Update Dolphin and GTK bookmarks with current gateway IP
+# Update Dolphin and GTK bookmarks with current phone IP
 UPDATE_SCRIPT="/usr/local/bin/seamless-update-places"
 if [ -x "$UPDATE_SCRIPT" ]; then
-    as_user python3 "$UPDATE_SCRIPT" "$GW" "$PORT" "$USER_HOME" | logger -t seamless-ftp
+    as_user python3 "$UPDATE_SCRIPT" "$PHONE_IP" "$PORT" "$USER_HOME" | logger -t seamless-ftp
 else
     # Fallback to direct GTK bookmark update
     BOOKMARKS="$USER_HOME/.config/gtk-3.0/bookmarks"
     if [ -f "$BOOKMARKS" ]; then
-        NEW_BKMK="ftp://phone:phone@${GW}:${PORT}/ Phone (FTP)"
+        NEW_BKMK="ftp://phone:phone@${PHONE_IP}:${PORT}/ Phone (FTP)"
         if grep -q "Phone (FTP)" "$BOOKMARKS"; then
             as_user sed -i "s|ftp://.* Phone (FTP)|$NEW_BKMK|" "$BOOKMARKS"
         else

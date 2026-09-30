@@ -3,10 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="12dp"
-    android:layout_marginBottom="8dp"
-    android:background="@color/card_dark"
+    android:padding="14dp"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_card"
     android:gravity="center_vertical">
+
+    <ImageView
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_shield_check"
+        android:layout_marginEnd="12dp"
+        android:contentDescription="Authorized" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -18,10 +25,10 @@
             android:id="@+id/tv_device_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="My Laptop"
+            android:text="Work ThinkPad"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/text_primary" />
+            android:textColor="#F3F4F6" />
 
         <TextView
             android:id="@+id/tv_device_mac"
@@ -30,7 +37,7 @@
             android:text="f8:3d:c6:d8:84:9a"
             android:textSize="13sp"
             android:fontFamily="monospace"
-            android:textColor="@color/text_secondary"
+            android:textColor="#10B981"
             android:layout_marginTop="2dp" />
     </LinearLayout>
 
@@ -38,10 +45,11 @@
         android:id="@+id/btn_delete_device"
         android:layout_width="wrap_content"
         android:layout_height="36dp"
-        android:text="Remove"
+        android:text="Revoke"
         android:textSize="12sp"
-        android:textColor="@color/text_primary"
-        android:background="@color/btn_stop"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/bg_button_stop"
         android:paddingLeft="12dp"
         android:paddingRight="12dp" />
 </LinearLayout>

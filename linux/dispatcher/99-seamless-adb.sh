@@ -15,9 +15,16 @@ esac
 
 log() { logger -t seamless-adb "$*"; }
 
-# Detect default gateway (phone's AP address)
+# Detect default gateway and resolve Phone IP (Hotspot or LAN discovery)
 GW=$(ip route show default dev "$INTERFACE" 2>/dev/null | awk '/default/{print $3; exit}')
-[ -z "$GW" ] && { log "No gateway found on $INTERFACE — skipping"; exit 0; }
+PHONE_IP="$GW"
+DISCOVER_BIN="/usr/local/bin/seamless-discover"
+if [ -x "$DISCOVER_BIN" ]; then
+    RESOLVED_IP=$(python3 "$DISCOVER_BIN" "$GW" 2>/dev/null)
+    [ -n "$RESOLVED_IP" ] && PHONE_IP="$RESOLVED_IP"
+fi
+
+[ -z "$PHONE_IP" ] && { log "No phone IP found on $INTERFACE — skipping"; exit 0; }
 
 # Dynamically detect active desktop user
 detect_active_user() {
@@ -46,11 +53,11 @@ if [ ! -x "$ADB_BIN" ]; then
     exit 0
 fi
 
-log "Connected to hotspot on $INTERFACE (Gateway: $GW). Connecting ADB as user $DESKTOP_USER..."
+log "Network event on $INTERFACE (Phone IP: $PHONE_IP). Connecting ADB as user $DESKTOP_USER..."
 
 # Run ADB connect inside the desktop user's session environment
 runuser -u "$DESKTOP_USER" -- env \
     HOME="$USER_HOME" \
-    "$ADB_BIN" connect "${GW}:5555" 2>&1 | logger -t seamless-adb
+    "$ADB_BIN" connect "${PHONE_IP}:5555" 2>&1 | logger -t seamless-adb
 
 exit 0

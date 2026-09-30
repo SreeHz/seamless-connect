@@ -34,9 +34,11 @@ REAL_HOME=$(eval echo "~$REAL_USER")
 
 echo -e "Target Desktop User: ${GREEN}$REAL_USER${NC} ($REAL_HOME)"
 
-# 1. Install helper script to /usr/local/bin
+# 1. Install helper scripts to /usr/local/bin
 echo -e "--> Installing file manager places updater to /usr/local/bin/seamless-update-places..."
 install -m 755 "$SCRIPT_DIR/scripts/update-filemanagers.py" /usr/local/bin/seamless-update-places
+echo -e "--> Installing network discovery helper to /usr/local/bin/seamless-discover..."
+install -m 755 "$SCRIPT_DIR/scripts/seamless-discover.py" /usr/local/bin/seamless-discover
 
 # 2. Install NetworkManager dispatchers
 DISPATCHER_DIR="/etc/NetworkManager/dispatcher.d"
