@@ -1,0 +1,83 @@
+Building My Own "Apple Ecosystem" — With Linux, Android, and Spite 🐧🤖
+Or: how I got handsfree file sharing without selling a kidney to Cupertino.
+
+The pitch 🍏➡️🐧
+Apple people love to tell you about "the ecosystem." AirDrop this. Continuity that. Your phone rings on your laptop. Your laptop guilt-trips you about storage. It's magical — the way a subscription is magical.
+
+Me? I've got a rooted Android phone and a Kubuntu laptop, and a stubborn refusal to accept that "it just works" should cost $2,499 + tax. So I built my own continuity. It also "just works." The difference is mine came with iptables rules and mild swearing. 😌
+
+Two pillars hold up my knock-off ecosystem:
+
+ADB over Wi-Fi (TCP/IP) — so I can poke, prod, debug, and reflash my phone without ever plugging in a cable. Handsfree development. 🙌
+An auto-starting FTP server — so my phone's entire filesystem shows up in my file manager the second I join its hotspot. Handsfree file sharing. 🙌🙌
+That's two hands free. That's a round of applause, actually. 👏
+
+Pillar 1: The cable is dead, long live the cable 🔌⚰️
+I already had the wireless ADB thing sorted. The moment my laptop connects to the phone's hotspot, a little NetworkManager dispatcher script wakes up and reconnects ADB over TCP/IP. No cable. No "please allow USB debugging" dance. No hunting for the one USB-C cable in the house that actually does data instead of just pretending. 🎭
+
+So now, adding a feature, chasing a bug, or investigating some cursed system behavior on the phone is a purely wireless affair. I sit down, my laptop finds the phone, and adb shell is just... there. Like a loyal dog that also has root. 🐕‍🦺
+
+It's the closest I'll ever get to Continuity without a Genius Bar appointment. And nobody named Chad tried to sell me AppleCare.
+
+Pillar 2: "AirDrop, but I understand how it works" 🪂📁
+Here's the new toy, and the reason you're reading this. 🎉
+
+The dream: join the phone's hotspot → a "Phone (FTP)" shortcut in Dolphin instantly lets me browse the phone's entire filesystem as root. Leave the hotspot → it all quietly shuts itself down like a well-behaved houseguest.
+
+The reality: exactly that. I'm as surprised as you are. 🥳
+
+How the sausage is made 🌭
+When my laptop joins the hotspot, a second dispatcher script (which politely runs after the ADB one, because I named it 99-zz- like the responsible adult I occasionally am) tells the phone over ADB:
+
+"Oi. Start the FTP server. You know the drill."
+
+The phone fires up BusyBox ftpd, serving / with full read/write, as root. Then it slams the door on everyone else with a firewall rule. 🚪🔒
+
+The plot twist: it wanted a password 🔐😤
+My plan confidently assumed BusyBox ftpd has no authentication. BusyBox ftpd, this specific build, looked me dead in the eye and said "530 Login failed."
+
+Cool. Cool cool cool. 😐
+
+Turns out this build does enforce logins, and Android has no /etc/shadow, so nobody can log in. A password prompt guarding a door that opens for no one. Very secure. Very useless. The -A flag ("no login required, run as the server's UID") saved the day — and since the server runs as root, -A means full root access, no password. Which sounds terrifying until you meet Pillar 2's bouncer. 🕴️
+
+The bouncer: your MAC address, and only your MAC address 🪪
+Here's the part I'm smug about. 😏
+
+The obvious way to lock the FTP port to "just my laptop" is by IP address. Except the phone hands my laptop a new DHCP IP on every single connection — sometimes mid-session, just to keep me humble. Lock to an IP and you're chasing a moving target. 🎯💨
+
+So instead I lock the firewall to my laptop's hardware MAC address — the one thing that's welded into the Wi-Fi card and doesn't change on a whim. The DHCP lottery becomes irrelevant. Even if some other gremlin on the hotspot grabs my old IP, the firewall shrugs: wrong MAC, buddy. 🙅
+
+Fun detour: the phone's iw station dump reported a totally different MAC than the one on the actual packets, because Android's soft-AP layer likes to keep secrets. Spent a good minute questioning reality before the ARP table set me straight. Networking: where three tools give you three answers and only one is invited to the wedding. 💍
+
+I proved the lock works too — pointed it at a fake MAC and watched my own laptop get politely ghosted (connection timeout, chef's kiss 💋). Then restored sanity.
+
+The self-cleaning oven 🧹
+The catch with "shut down when I leave": once I've left the Wi-Fi, my laptop can't exactly send a "goodbye, please shut down" message — the road's gone. 🌉🔥
+
+So the phone babysits itself. A little watchdog pings my laptop every 30 seconds. Three misses in a row and it assumes I've wandered off, kills the FTP server, and tidies up its own firewall rules. And it's smart enough to know the difference between "laptop left the building" and "laptop is just napping with Wi-Fi power-save on" — so it won't rage-quit while I'm idle. 😴
+
+It's the roommate who does the dishes and doesn't wake you up. Mythical. 🦄
+
+The grand demo 🎬
+To make sure I wasn't lying to myself, I ran the honest test: stopped the server, sabotaged the bookmark with a fake IP, then yanked my Wi-Fi and reconnected.
+
+Three seconds later:
+
+✅ FTP server back up, MAC-locked to my laptop
+✅ Bookmark auto-corrected to the real address
+✅ Dolphin cheerfully listing /sdcard like nothing happened
+Handsfree. Wireless. Zero clicks. My phone's guts, in my file manager, on demand. 🤯
+
+So... did I rebuild the Apple ecosystem? 🍎🆚🐧
+Honestly? For my use case, yeah. 😎
+
+Continuity → wireless ADB, my phone is always one command away
+AirDrop → MAC-locked auto FTP, files fly both ways over the air
+"It just works" → it just works, and I know why, which Apple considers a bug 🐛
+No walled garden. No "you're holding it wrong." No ecosystem tax. Just a penguin and a green robot who figured out how to be handsfree together, held together with shell scripts and audacity. 🐧🤖🫱🏻‍🫲🏽
+
+The best part? When something breaks, I don't file a support ticket into the void. I open a terminal. And that's the real magic. ✨
+
+Now if you'll excuse me, I have to go tell an iPhone user that AirDrop is just FTP with better marketing. 📲😇
+
+Built handsfree, wirelessly, and with love (and iptables) on 2026-07-11. 

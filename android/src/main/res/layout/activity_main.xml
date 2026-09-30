@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Top Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Seamless Connect"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Wireless ADB &amp; MAC-Locked FTP"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_refresh_all"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Refresh"
+                android:textSize="12sp"
+                android:background="@color/btn_neutral"
+                android:textColor="@color/text_primary"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp" />
+        </LinearLayout>
+
+        <!-- Status Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/card_dark"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/tv_ftp_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FTP Server: Checking..."
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/status_green" />
+
+            <TextView
+                android:id="@+id/tv_adb_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Wireless ADB: Port 5555"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/tv_network_details"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hotspot IP: -- | Iface: --"
+                android:textSize="13sp"
+                android:fontFamily="monospace"
+                android:textColor="@color/text_muted"
+                android:layout_marginTop="6dp" />
+
+            <!-- Control Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="12dp">
+
+                <Button
+                    android:id="@+id/btn_start_service"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="Start FTP"
+                    android:textSize="13sp"
+                    android:background="@color/btn_start"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginEnd="6dp" />
+
+                <Button
+                    android:id="@+id/btn_stop_service"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="Stop FTP"
+                    android:textSize="13sp"
+                    android:background="@color/btn_stop"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginEnd="6dp" />
+
+                <Button
+                    android:id="@+id/btn_rescan_media"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="Rescan"
+                    android:textSize="13sp"
+                    android:background="@color/btn_neutral"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginStart="6dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Connected Clients Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/card_dark"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Connected Hotspot Devices"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tap '+ Authorize' to instantly grant FTP root access to your laptop."
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/container_clients"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/tv_no_clients"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No connected hotspot devices detected right now."
+                android:textSize="13sp"
+                android:textColor="@color/text_muted"
+                android:gravity="center"
+                android:padding="8dp" />
+        </LinearLayout>
+
+        <!-- Authorized Devices Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/card_dark"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Authorized Laptops (Firewall)"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btn_add_mac_dialog"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:text="+ Add MAC"
+                    android:textSize="11sp"
+                    android:background="@color/btn_neutral"
+                    android:textColor="@color/text_primary"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Only packets originating from these MAC addresses can connect to FTP."
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/container_authorized"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/tv_no_authorized"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No devices authorized. FTP requests will be blocked."
+                android:textSize="13sp"
+                android:textColor="@color/text_muted"
+                android:gravity="center"
+                android:padding="8dp" />
+        </LinearLayout>
+
+        <!-- Instructions Footer -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Seamless Connect • Open Source Project\nLinux Client automatically mounts Dolphin Places when connected to Hotspot."
+            android:textSize="11sp"
+            android:textColor="@color/text_muted"
+            android:gravity="center"
+            android:padding="12dp" />
+
+    </LinearLayout>
+</ScrollView>

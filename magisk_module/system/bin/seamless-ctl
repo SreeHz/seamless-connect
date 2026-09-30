@@ -1,0 +1,152 @@
+#!/system/bin/sh
+# seamless-ctl — CLI manager for Seamless Connect
+CONF_DIR="/data/adb/seamless_connect"
+CONF_FILE="$CONF_DIR/seamless.conf"
+MACS_FILE="$CONF_DIR/authorized_macs"
+FTP_SCRIPT="/data/adb/seamless_connect/ftp-server.sh"
+
+mkdir -p "$CONF_DIR"
+[ -f "$MACS_FILE" ] || touch "$MACS_FILE"
+
+show_help() {
+    echo "Seamless Connect Controller (seamless-ctl)"
+    echo "Usage: seamless-ctl <command> [arguments]"
+    echo ""
+    echo "Commands:"
+    echo "  status            Show live status of FTP server and ADB TCP/IP"
+    echo "  start             Start FTP server"
+    echo "  stop              Stop FTP server"
+    echo "  restart           Restart FTP server"
+    echo "  clients           Show currently connected hotspot clients"
+    echo "  list-macs         List all authorized MAC addresses"
+    echo "  add-mac <mac> [name]  Authorize a new laptop MAC address"
+    echo "  del-mac <mac>     Remove an authorized MAC address"
+    echo "  rescan-media      Trigger an Android MediaStore library rescan"
+    echo ""
+}
+
+clean_mac() {
+    echo "$1" | tr '[:upper:]' '[:lower:]' | tr -cd '0-9a-f:'
+}
+
+case "$1" in
+    status)
+        echo "=== Seamless Connect Status ==="
+        adb_port=$(getprop service.adb.tcp.port)
+        echo "ADB_TCP_PORT=${adb_port:-disabled}"
+        if [ -x "$FTP_SCRIPT" ]; then
+            sh "$FTP_SCRIPT" status
+        else
+            echo "FTP_SCRIPT_MISSING"
+        fi
+        echo "=== Authorized Devices ==="
+        if [ -s "$MACS_FILE" ]; then
+            cat "$MACS_FILE"
+        else
+            echo "(None configured)"
+        fi
+        ;;
+    start)
+        if [ -x "$FTP_SCRIPT" ]; then
+            sh "$FTP_SCRIPT" start
+        else
+            echo "Error: $FTP_SCRIPT not found or executable."
+            exit 1
+        fi
+        ;;
+    stop)
+        if [ -x "$FTP_SCRIPT" ]; then
+            sh "$FTP_SCRIPT" stop
+        else
+            echo "Error: $FTP_SCRIPT not found."
+            exit 1
+        fi
+        ;;
+    restart)
+        if [ -x "$FTP_SCRIPT" ]; then
+            sh "$FTP_SCRIPT" restart
+        else
+            echo "Error: $FTP_SCRIPT not found."
+            exit 1
+        fi
+        ;;
+    list-macs)
+        if [ -f "$MACS_FILE" ]; then
+            cat "$MACS_FILE"
+        fi
+        ;;
+    add-mac)
+        if [ -z "$2" ]; then
+            echo "Usage: seamless-ctl add-mac <mac> [device_name]"
+            exit 1
+        fi
+        mac=$(clean_mac "$2")
+        # Validate MAC format (xx:xx:xx:xx:xx:xx)
+        if ! echo "$mac" | grep -Eq '^([0-9a-f]{2}:){5}[0-9a-f]{2}$'; then
+            echo "Error: Invalid MAC address format ($2). Expected aa:bb:cc:dd:ee:ff"
+            exit 1
+        fi
+        shift 2
+        name="$*"
+        [ -z "$name" ] && name="Authorized Device"
+
+        # Check if already exists
+        if grep -qi "^$mac" "$MACS_FILE" 2>/dev/null; then
+            # Update comment
+            grep -vi "^$mac" "$MACS_FILE" > "$MACS_FILE.tmp"
+            echo "$mac # $name" >> "$MACS_FILE.tmp"
+            mv "$MACS_FILE.tmp" "$MACS_FILE"
+            echo "Updated existing MAC $mac ($name)"
+        else
+            echo "$mac # $name" >> "$MACS_FILE"
+            echo "Added $mac ($name)"
+        fi
+        # If server is running, refresh firewall rules
+        if [ -f /data/local/tmp/ftp-server.state ]; then
+            echo "Refreshing active firewall rules..."
+            sh "$FTP_SCRIPT" restart >/dev/null 2>&1
+        fi
+        ;;
+    del-mac)
+        if [ -z "$2" ]; then
+            echo "Usage: seamless-ctl del-mac <mac>"
+            exit 1
+        fi
+        mac=$(clean_mac "$2")
+        if [ -f "$MACS_FILE" ]; then
+            grep -vi "^$mac" "$MACS_FILE" > "$MACS_FILE.tmp"
+            mv "$MACS_FILE.tmp" "$MACS_FILE"
+            echo "Removed $mac"
+            if [ -f /data/local/tmp/ftp-server.state ]; then
+                sh "$FTP_SCRIPT" restart >/dev/null 2>&1
+            fi
+        fi
+        ;;
+    clients)
+        # Parse ARP and neighbor table
+        echo "IP | MAC | INTERFACE | STATUS | AUTHORIZED"
+        echo "--------------------------------------------------------"
+        ip neigh show 2>/dev/null | grep -E 'lladdr' | while read -r line; do
+            ip=$(echo "$line" | awk '{print $1}')
+            dev=$(echo "$line" | awk '{print $3}')
+            mac=$(echo "$line" | awk '{print tolower($5)}')
+            state=$(echo "$line" | awk '{print $6}')
+            auth="NO"
+            if grep -qi "^$mac" "$MACS_FILE" 2>/dev/null; then
+                auth="YES"
+            fi
+            echo "$ip | $mac | $dev | $state | $auth"
+        done
+        ;;
+    rescan-media)
+        if [ -x "$FTP_SCRIPT" ]; then
+            sh "$FTP_SCRIPT" scan
+        else
+            content call --uri content://media --method scan_volume --arg external_primary
+        fi
+        ;;
+    *)
+        show_help
+        exit 1
+        ;;
+esac

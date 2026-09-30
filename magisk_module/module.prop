@@ -1,0 +1,6 @@
+id=seamless_connect
+name=Seamless Connect (Wireless ADB + MAC-Locked FTP)
+version=v1.0
+versionCode=100
+author=SeamlessConnect Community
+description=Turns your Android phone into a handsfree wireless workstation: auto-reconnects ADB TCP/IP and mounts a full root FTP server locked strictly to your laptop hardware MAC address.

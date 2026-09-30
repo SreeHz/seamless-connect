@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Stop advertising dual-band concurrent (bridged) SoftAP so Settings
+         offers separate 2.4 GHz / 5 GHz band choices again -->
+    <bool name="config_wifiBridgedSoftApSupported">false</bool>
+    <bool name="config_wifiSoftapAutoUpgradeToBridgedConfigWhenSupported">false</bool>
+</resources>

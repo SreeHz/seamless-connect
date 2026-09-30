@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Seamless Connect</string>
+    <string name="status_title">Service Status</string>
+    <string name="status_running">FTP Server: RUNNING</string>
+    <string name="status_stopped">FTP Server: STOPPED</string>
+    <string name="adb_status">Wireless ADB: Port 5555</string>
+    <string name="hotspot_ip">Hotspot IP:</string>
+    <string name="interface_label">Interface:</string>
+    <string name="btn_start">Start FTP</string>
+    <string name="btn_stop">Stop FTP</string>
+    <string name="btn_rescan">Rescan Media</string>
+    <string name="connected_clients_title">Connected Hotspot Devices</string>
+    <string name="authorized_devices_title">Authorized Laptops / Devices</string>
+    <string name="btn_add_mac">+ Authorize New MAC</string>
+    <string name="btn_refresh">Refresh</string>
+    <string name="no_clients_found">No hotspot clients detected</string>
+    <string name="no_authorized_devices">No devices authorized yet. Add your laptop MAC address to allow FTP connections.</string>
+</resources>
