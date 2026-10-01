@@ -137,6 +137,7 @@ Seamless Connect is designed from the ground up to be independent of phone OEM s
 ### Android Compatibility
 | Android Version | API Level | Status | Notes |
 | :--- | :--- | :--- | :--- |
+| **Android 17** (LineageOS 24+) | API 37 | ✅ Fully Verified | Tested on Motorola Moto G57 Power (`mumba_g`, LineageOS 24.0-Ext-BETA) |
 | **Android 16** (LineageOS 23+) | API 36 | ✅ Fully Verified | Tested on Motorola Moto G57 Power (`mumba_g`) |
 | **Android 15 (Vanilla Ice Cream)** | API 35 | ✅ Supported | Native support for wireless debugging & root FTP |
 | **Android 14 (Upside Down Cake)** | API 34 | ✅ Supported | Target SDK level |
