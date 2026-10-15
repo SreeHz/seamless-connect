@@ -80,7 +80,7 @@ if ($isAuthorized) {
     Write-Host "ADB connection established and authorized." -ForegroundColor Green
     
     # Trigger root FTP daemon on Android device
-    $ftpCmd = "if [ -x /data/adb/seamless_connect/ftp-server.sh ]; then /data/adb/seamless_connect/ftp-server.sh start; elif [ -x /data/adb/ftp-server.sh ]; then /data/adb/ftp-server.sh start; fi"
+    $ftpCmd = "if which seamless-ctl >/dev/null 2>&1; then seamless-ctl start; elif [ -x /data/adb/seamless_connect/ftp-server.sh ]; then /data/adb/seamless_connect/ftp-server.sh start; elif [ -x /data/adb/ftp-server.sh ]; then /data/adb/ftp-server.sh start; fi"
     $ftpOut = & $adbPath -s "${phoneIp}:5555" shell su -c "$ftpCmd" 2>&1
     Write-Verbose "Phone FTP server output: $ftpOut"
     $ftpStarted = $true

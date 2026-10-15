@@ -22,22 +22,19 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Scheduled task was not found or already removed." -ForegroundColor Gray
 }
 
-# 2. Remove Network Location Shortcut
+# 2. Remove Network Location Shortcuts
 $netHoodDir = [Environment]::GetFolderPath('NetworkShortcuts')
 if ([string]::IsNullOrWhiteSpace($netHoodDir)) {
     $netHoodDir = Join-Path $env:APPDATA 'Microsoft\Windows\Network Shortcuts'
 }
-$netShortcut = Join-Path $netHoodDir "Phone (FTP).url"
-if (Test-Path $netShortcut) {
-    Remove-Item $netShortcut -Force
-    Write-Host "Removed File Explorer network shortcut." -ForegroundColor Green
-}
+Remove-Item (Join-Path $netHoodDir "Phone (FTP).lnk") -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $netHoodDir "Phone (FTP).url") -Force -ErrorAction SilentlyContinue
+Write-Host "Removed File Explorer network shortcuts." -ForegroundColor Green
 
-# 3. Remove Desktop Shortcut
-$desktopShortcut = Join-Path ([Environment]::GetFolderPath('Desktop')) "Phone (FTP).url"
-if (Test-Path $desktopShortcut) {
-    Remove-Item $desktopShortcut -Force
-    Write-Host "Removed Desktop shortcut." -ForegroundColor Green
-}
+# 3. Remove Desktop Shortcuts
+$desktopDir = [Environment]::GetFolderPath('Desktop')
+Remove-Item (Join-Path $desktopDir "Phone (FTP).lnk") -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $desktopDir "Phone (FTP).url") -Force -ErrorAction SilentlyContinue
+Write-Host "Removed Desktop shortcuts." -ForegroundColor Green
 
 Write-Host "`nUninstallation Complete." -ForegroundColor Green
