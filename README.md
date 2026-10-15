@@ -7,6 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Android Root](https://img.shields.io/badge/Root-Magisk%20%7C%20KernelSU%20%7C%20APatch-brightgreen.svg)](#-android-phone-setup)
 [![Linux Compatibility](https://img.shields.io/badge/Linux-KDE%20Dolphin%20%7C%20Nemo%20%7C%20Nautilus-orange.svg)](#-linux-laptop-setup)
+[![Windows Compatibility](https://img.shields.io/badge/Windows-10%20%7C%2011%20File%20Explorer-0078D6.svg)](#-windows-laptop-setup)
 [![Network Mode](https://img.shields.io/badge/Network-Hotspot%20%2B%20Home%20Wi--Fi%20(LAN)-purple.svg)](#-two-network-modes)
 
 ---
@@ -172,7 +173,7 @@ Seamless Connect is designed from the ground up to be independent of phone OEM s
 
 **Windows Components & Integrations**:
 - **Trigger Engine**: Native Windows Event Log trigger (`Microsoft-Windows-NetworkProfile/Operational` Event 10000). Zero CPU/RAM idle footprint.
-- **File Explorer (NetHood Integration)**: Automatically updates `Phone (FTP).url` in `Network Shortcuts` and Desktop with real-time phone IP and mobile device icon (`shell32.dll,194`).
+- **File Explorer (NetHood Integration)**: Automatically updates `Phone (FTP).lnk` in `Network Shortcuts` (This PC / Network Locations) and on Desktop with real-time phone IP and native mobile device icon (`shell32.dll,194`).
 - **Platform-Tools**: Official Google Android SDK Platform-Tools for Windows (`adb`, `fastboot`).
 
 ### Linux Compatibility
