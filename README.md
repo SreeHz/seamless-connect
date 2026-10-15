@@ -119,20 +119,31 @@ Seamless Connect includes a native Android Companion App ([`SeamlessConnect.apk`
    ```
 2. **What this does**:
    - Installs `seamless-discover` and `seamless-update-places` into `/usr/local/bin/`.
-   - Configures NetworkManager dispatchers (`99-seamless-adb.sh` and `99-zz-seamless-ftp.sh`).
+   - Configures NetworkManager dispatchers (`99-seamless-adb.sh` and `99-seamless-ftp.sh`).
    - Registers the **"Phone (FTP)"** pinned bookmark in **KDE Dolphin** (`user-places.xbel`) and **GTK file managers** (Nemo, Nautilus, Thunar).
    - Prints your laptop's Wi-Fi hardware MAC address.
 
-That's it! From now on, whenever you join the hotspot or your home Wi-Fi:
-- ADB connects automatically.
-- The phone starts the FTP server.
-- Click **"Phone (FTP)"** in Dolphin or your file manager to browse the phone's entire root filesystem!
+---
+
+### 3. Windows Laptop Setup
+1. **Clone and Install**:
+   ```powershell
+   git clone https://github.com/SreeHz/seamless-connect.git
+   cd seamless-connect\windows
+   .\install.ps1
+   ```
+2. **What this does**:
+   - Automatically verifies or downloads official Google Android SDK platform-tools (`adb.exe`, `fastboot.exe`) and adds them to your User `PATH`.
+   - Registers a native, zero-overhead Windows Scheduled Task (`SeamlessConnect`) triggered by Windows Event ID `10000` (Network Connected).
+   - Dynamically pins **"Phone (FTP)"** under **"This PC" / Network Locations** and on your **Desktop** with a native phone icon (`shell32.dll,194`), allowing direct browsing in Windows File Explorer without third-party FTP clients.
+   - Displays your laptop's Wi-Fi hardware MAC address formatted for the Seamless Connect app.
+   - Runs completely within standard user permissions (zero administrative elevation required).
 
 ---
 
 ## 💻 Compatibility Matrix
 
-Seamless Connect is designed from the ground up to be independent of phone OEM skins and Linux desktop environments.
+Seamless Connect is designed from the ground up to be independent of phone OEM skins and desktop environments across Linux and Windows.
 
 ### Android Compatibility
 | Android Version | API Level | Status | Notes |
@@ -153,6 +164,17 @@ Seamless Connect is designed from the ground up to be independent of phone OEM s
 - **APatch**: v0.10.0+
 - **BusyBox**: Built into Magisk/KernelSU (provides `tcpsvd` and `ftpd`).
 
+### Windows Compatibility
+| Operating System | Editions / Builds | File Manager / Shell Integration | Status |
+| :--- | :--- | :--- | :--- |
+| **Windows 11** | 24H2, 23H2, 22H2, 21H2 | **Windows File Explorer** (*This PC* & *Network Locations*) | ✅ Fully Verified |
+| **Windows 10** | 22H2, 21H2, 20H2, 1909+ | **Windows File Explorer** (*This PC* & *Network Locations*) | ✅ Fully Verified |
+
+**Windows Components & Integrations**:
+- **Trigger Engine**: Native Windows Event Log trigger (`Microsoft-Windows-NetworkProfile/Operational` Event 10000). Zero CPU/RAM idle footprint.
+- **File Explorer (NetHood Integration)**: Automatically updates `Phone (FTP).url` in `Network Shortcuts` and Desktop with real-time phone IP and mobile device icon (`shell32.dll,194`).
+- **Platform-Tools**: Official Google Android SDK Platform-Tools for Windows (`adb`, `fastboot`).
+
 ### Linux Compatibility
 | Distribution | Versions | Desktop Environments / File Managers | Status |
 | :--- | :--- | :--- | :--- |
@@ -163,7 +185,7 @@ Seamless Connect is designed from the ground up to be independent of phone OEM s
 | **Arch Linux / Manjaro** | Rolling (All) | **Dolphin**, **Thunar** (XFCE), **PCManFM** | ✅ Supported |
 | **openSUSE** | Tumbleweed, Leap 15.x+ | **Dolphin**, **Nautilus** | ✅ Supported |
 
-**Supported File Managers & Places Engines**:
+**Supported File Managers & Places Engines (Linux)**:
 - **KDE Plasma (Dolphin)**: Auto-synchronizes `~/.local/share/user-places.xbel` XML. Dolphin's `KDirWatch` updates the sidebar in real time without restarting the file manager.
 - **GTK File Managers (Nemo, Nautilus, Thunar, PCManFM)**: Auto-synchronizes `~/.config/gtk-3.0/bookmarks`.
 - **Network Engine**: Compatible with any Linux system running **NetworkManager** (standard on almost all desktop distributions).
