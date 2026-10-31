@@ -26,9 +26,12 @@ if ! command -v adb >/dev/null 2>&1; then
 fi
 
 # Detect desktop user
-REAL_USER="${SUDO_USER:-$(loginctl list-users --no-legend 2>/dev/null | awk '$1 >= 1000 {print $2; exit}')}"
+REAL_USER="${SUDO_USER:-$(loginctl list-users --no-legend 2>/dev/null | awk '$1 >= 1000 && $1 < 60000 {print $2; exit}')}"
 if [ -z "$REAL_USER" ] || [ "$REAL_USER" = "root" ]; then
-    REAL_USER=$(who | awk '$2 ~ /(:0|tty2|wayland)/ {print $1; exit}')
+    REAL_USER=$(who 2>/dev/null | awk '$1 != "root" && $1 != "gdm" && $1 != "sddm" && $1 != "lightdm" {print $1; exit}')
+fi
+if [ -z "$REAL_USER" ] || [ "$REAL_USER" = "root" ]; then
+    REAL_USER=$(getent passwd 2>/dev/null | awk -F: '$3 >= 1000 && $3 < 60000 && $1 != "nobody" {print $1; exit}')
 fi
 REAL_HOME=$(eval echo "~$REAL_USER")
 

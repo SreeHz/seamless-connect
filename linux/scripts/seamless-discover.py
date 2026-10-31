@@ -17,16 +17,20 @@ def test_adb_port(ip, port=5555, timeout=0.8):
     except Exception:
         return False
 
-def discover_udp(timeout=2.0):
+def discover_udp(gateway=None, timeout=2.0):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     s.settimeout(timeout)
-    
+
+    targets = ["255.255.255.255"]
+    if gateway and gateway.count(".") == 3:
+        subnet_bcast = ".".join(gateway.split(".")[:3] + ["255"])
+        if subnet_bcast not in targets:
+            targets.insert(0, subnet_bcast)
+
     # Broadcast discovery message
     try:
-        s.sendto(b"SEAMLESS_DISCOVER", ("255.255.255.255", 21210))
-        # Also try direct subnet broadcasts
-        for target in ["255.255.255.255"]:
+        for target in targets:
             try:
                 s.sendto(b"SEAMLESS_DISCOVER", (target, 21210))
             except Exception:
@@ -40,7 +44,7 @@ def discover_udp(timeout=2.0):
             return phone_ip
     except socket.timeout:
         pass
-    except Exception as e:
+    except Exception:
         pass
     finally:
         s.close()
@@ -55,7 +59,7 @@ def main():
         sys.exit(0)
 
     # 2. Shared Wi-Fi / LAN Path: Broadcast discovery beacon to find phone IP on local network
-    phone_ip = discover_udp(timeout=2.0)
+    phone_ip = discover_udp(gateway=gateway, timeout=2.0)
     if phone_ip:
         print(phone_ip)
         sys.exit(0)

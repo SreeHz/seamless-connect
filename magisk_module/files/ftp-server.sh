@@ -21,6 +21,7 @@ WATCH_MISSES=3
 if [ -f "$CONF_FILE" ]; then
     . "$CONF_FILE"
 fi
+CFG_IFACE="${IFACE:-auto}"
 
 export PATH=/system/bin:/system/xbin:/data/adb/magisk:/data/adb/ksu/bin:/data/adb/ap/bin:$PATH
 
@@ -46,8 +47,8 @@ get_authorized_macs() {
 }
 
 detect_iface() {
-    if [ -n "$IFACE" ] && [ "$IFACE" != "auto" ]; then
-        echo "$IFACE"
+    if [ -n "$CFG_IFACE" ] && [ "$CFG_IFACE" != "auto" ]; then
+        echo "$CFG_IFACE"
         return 0
     fi
     local detected=""
@@ -88,7 +89,7 @@ add_firewall() {
         return 0
     fi
 
-    if [ -n "$IFACE" ] && [ "$IFACE" != "auto" ]; then
+    if [ -n "$CFG_IFACE" ] && [ "$CFG_IFACE" != "auto" ]; then
         for mac in $macs; do
             iptables -I INPUT 1 -i "$ACTIVE_IFACE" -p tcp --dport "$PORT" -m mac --mac-source "$mac" -j ACCEPT
             iptables -I INPUT 1 -i "$ACTIVE_IFACE" -m mac --mac-source "$mac" -j ACCEPT
@@ -144,7 +145,7 @@ media_scan_if_uploads() {
 
 connected_mac_ip() {
     local target_mac="$1"
-    if [ -n "$IFACE" ] && [ "$IFACE" != "auto" ]; then
+    if [ -n "$CFG_IFACE" ] && [ "$CFG_IFACE" != "auto" ]; then
         ip -4 neigh show dev "$ACTIVE_IFACE" 2>/dev/null \
             | awk -v m="$target_mac" 'tolower($0) ~ tolower(m) {print $1; exit}'
     else
@@ -158,7 +159,7 @@ is_laptop_present() {
     [ -z "$macs" ] && return 1
 
     for mac in $macs; do
-        if [ -n "$IFACE" ] && [ "$IFACE" != "auto" ]; then
+        if [ -n "$CFG_IFACE" ] && [ "$CFG_IFACE" != "auto" ]; then
             if ip neigh show dev "$ACTIVE_IFACE" 2>/dev/null | grep -qi "$mac"; then
                 return 0
             fi
@@ -176,7 +177,11 @@ is_laptop_present() {
 }
 
 teardown() {
-    if [ -f "$STATE" ]; then . "$STATE" 2>/dev/null; fi
+    local state_pid=""
+    if [ -f "$STATE" ]; then
+        state_pid=$(. "$STATE" 2>/dev/null; echo "$TCPSVD_PID")
+    fi
+    [ -n "$state_pid" ] && kill "$state_pid" 2>/dev/null
     [ -n "$TCPSVD_PID" ] && kill "$TCPSVD_PID" 2>/dev/null
     if [ -n "$BB" ]; then
         pkill -f "$BB ftpd" 2>/dev/null

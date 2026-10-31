@@ -88,9 +88,19 @@ MAGISK_ZIP="$BUILD_DIR/release/seamless_connect_magisk.zip"
 (cd "$PROJECT_DIR/magisk_module" && zip -r -FS "$MAGISK_ZIP" .)
 echo "✓ Magisk Module packaged: $MAGISK_ZIP"
 
+LINUX_ZIP="$BUILD_DIR/release/seamless_connect_linux.zip"
+(cd "$PROJECT_DIR" && zip -r -FS "$LINUX_ZIP" linux LICENSE README.md -x "*/__pycache__/*" "*.pyc")
+echo "✓ Linux Bundle packaged:  $LINUX_ZIP"
+
+WINDOWS_ZIP="$BUILD_DIR/release/seamless_connect_windows.zip"
+(cd "$PROJECT_DIR" && zip -r -FS "$WINDOWS_ZIP" windows LICENSE README.md)
+echo "✓ Windows Bundle packaged: $WINDOWS_ZIP"
+
 echo ""
 echo "========================================================"
 echo " Build Complete!"
-echo " APK:    $BUILD_DIR/release/SeamlessConnect.apk"
-echo " Module: $MAGISK_ZIP"
+echo " APK:     $BUILD_DIR/release/SeamlessConnect.apk"
+echo " Module:  $MAGISK_ZIP"
+echo " Linux:   $LINUX_ZIP"
+echo " Windows: $WINDOWS_ZIP"
 echo "========================================================"

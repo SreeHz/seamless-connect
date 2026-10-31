@@ -26,20 +26,18 @@ fi
 
 [ -z "$PHONE_IP" ] && { log "No phone IP found on $INTERFACE — skipping"; exit 0; }
 
-# Dynamically detect active desktop user
+# Dynamically detect active desktop user (safe even at boot before GUI login)
 detect_active_user() {
     local u=""
-    u=$(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $3}' | while read s_user; do
-        if [ "$s_user" != "root" ] && [ "$s_user" != "gdm" ] && [ "$s_user" != "sddm" ] && [ "$s_user" != "lightdm" ]; then
-            echo "$s_user"
-            break
-        fi
-    done)
+    u=$(loginctl list-sessions --no-legend 2>/dev/null | awk '$2 >= 1000 && $2 < 60000 {print $3; exit}')
     if [ -z "$u" ]; then
-        u=$(loginctl list-users --no-legend 2>/dev/null | awk '$1 >= 1000 {print $2; exit}')
+        u=$(loginctl list-users --no-legend 2>/dev/null | awk '$1 >= 1000 && $1 < 60000 {print $2; exit}')
     fi
     if [ -z "$u" ]; then
-        u=$(who | awk '$2 ~ /(:0|tty2|wayland)/ {print $1; exit}')
+        u=$(who 2>/dev/null | awk '$1 != "root" && $1 != "gdm" && $1 != "sddm" && $1 != "lightdm" {print $1; exit}')
+    fi
+    if [ -z "$u" ]; then
+        u=$(getent passwd 2>/dev/null | awk -F: '$3 >= 1000 && $3 < 60000 && $1 != "nobody" {print $1; exit}')
     fi
     echo "${u:-root}"
 }
@@ -55,9 +53,17 @@ fi
 
 log "Network event on $INTERFACE (Phone IP: $PHONE_IP). Connecting ADB as user $DESKTOP_USER..."
 
+adb_as_user() {
+    runuser -u "$DESKTOP_USER" -- env HOME="$USER_HOME" "$ADB_BIN" "$@" 2>&1
+}
+
+# Recover stale offline ADB socket if present
+if adb_as_user devices | grep -q "^${PHONE_IP}:5555[[:space:]]*offline"; then
+    log "ADB socket ${PHONE_IP}:5555 is offline; disconnecting first..."
+    adb_as_user disconnect "${PHONE_IP}:5555" | logger -t seamless-adb
+fi
+
 # Run ADB connect inside the desktop user's session environment
-runuser -u "$DESKTOP_USER" -- env \
-    HOME="$USER_HOME" \
-    "$ADB_BIN" connect "${PHONE_IP}:5555" 2>&1 | logger -t seamless-adb
+adb_as_user connect "${PHONE_IP}:5555" | logger -t seamless-adb
 
 exit 0

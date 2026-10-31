@@ -1,20 +1,20 @@
 <#
 .SYNOPSIS
-    Automated Publisher for Seamless Connect v1.2.1 Release
+    Automated Publisher for Seamless Connect v1.2.2 Release
 .DESCRIPTION
     Authenticates with GitHub (using gh CLI or Git Credential Manager), pushes commits and tags,
-    and publishes the v1.2.1 GitHub release with all 4 assets.
+    and publishes the v1.2.2 GitHub release with all 4 assets.
 #>
 
 [CmdletBinding()]
 param()
 
-$repoDir = "C:\Users\raswanth\seamless-connect"
+$repoDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $repoDir
 $env:Path = "$env:LOCALAPPDATA\Programs\GitHubCLI;$env:LOCALAPPDATA\Programs\Git\cmd;$env:LOCALAPPDATA\Android\platform-tools;$env:Path"
 
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "       Seamless Connect - Publish v1.2.1 to GitHub          " -ForegroundColor Cyan
+Write-Host "       Seamless Connect - Publish v1.2.2 to GitHub          " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 # 1. Check GitHub Authentication (fallback to Git Credential Manager token in memory)
@@ -45,40 +45,37 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "Pushed main branch and tags successfully!" -ForegroundColor Green
 
-# 3. Publish GitHub Release v1.2.1
-$releaseTitle = "v1.2.1 - Windows Network Location & Wireless FTP Auto-Start Fixes"
+# 3. Publish GitHub Release v1.2.2
+$releaseTitle = "v1.2.2 - Linux GVFS Zero-Click FTP, Boot User Detection & Multi-Interface State Fix"
 $releaseNotes = @'
-## What's New in v1.2.1
+## What's New in v1.2.2
 
-### Critical Fixes (Windows, Linux & Android)
-- **Fixed Wireless FTP Auto-Start Over ADB (Windows & Linux)**: Properly single-quoted the `adb shell su -c` command payload in `seamless-connect.ps1` and `99-seamless-ftp.sh` so Android's `/system/bin/sh` no longer drops quotes and fails on `; then` when launching `seamless-ctl start`.
-- **Native Windows File Explorer Network Location (`This PC`)**: Upgraded `update-explorer.ps1` to create a true Windows Shell Folder Shortcut (`CLSID {0AFACED1-E828-11D1-9187-B532F1E9575D}`) inside `Network Shortcuts` with instant `SHChangeNotify` refresh - enabling direct in-place root (`/`) FTP browsing inside File Explorer without browser `UserChoice` (`MSEdgeHTM`) hijacking.
-- **Hotspot DHCP Race Protection & Live Port Verification (Windows)**: Added Wi-Fi gateway polling (handling early `EventID=10000` `Identifying...` triggers before DHCP completes), automatic `offline` ADB socket recovery, live TCP port `2121` verification, and run logging (`%LOCALAPPDATA%\SeamlessConnect\seamless-connect.log`).
-- **Multi-Interface & Dual-Band SoftAP Firewall Hardening (`ftp-server.sh`)**: Improved interface detection via live `ip neigh` MAC lookup and hardened `iptables` to enforce MAC whitelisting and port `2121` `DROP` across all interfaces (supporting bridged dual-band SoftAP, Wi-Fi STA+AP concurrency, and single-band hotspots alike).
-
-### Native Windows Support (from v1.2.0)
-- **Native Event-Triggered Daemon**: Windows Scheduled Task triggered by Event ID `10000` (*Network Profile Connected*) with zero idle CPU/RAM footprint.
-- **Official Google Platform-Tools**: Auto-installs official Google Android SDK platform-tools (`adb`, `fastboot`) into user `PATH` with zero admin elevation required.
+### Critical Fixes (Linux & Android Daemon)
+- **Fixed Multi-Interface Firewall State Clobbering (`ftp-server.sh`)**: Preserved immutable `CFG_IFACE` from `seamless.conf` and isolated `TCPSVD_PID` extraction in a subshell during `teardown` so sourcing `/data/local/tmp/ftp-server.state` no longer overwrites `IFACE="auto"` with a single stale interface (`wlan2`/`wlan0`) on subsequent restarts.
+- **Zero-Click Linux GVFS / KDE KIO Anonymous FTP URI**: Updated `update-filemanagers.py` and `99-seamless-ftp.sh` to generate `ftp://anonymous@<ip>:2121/` bookmarks instead of `ftp://phone:phone@<ip>:2121/`, eliminating password prompt dialogs in Nemo, Nautilus, Thunar, and Dolphin when Android Hotspot randomizes its subnet IP.
+- **Linux Boot-Time Desktop User Detection**: Hardened `detect_active_user()` in `99-seamless-adb.sh`, `99-seamless-ftp.sh`, and `install.sh` with UID-based `loginctl` filtering and a `getent passwd` (`1000 <= UID < 60000`) fallback so pre-login boot Wi-Fi connections run ADB and bookmark updates as the real desktop user rather than `root`.
+- **Stale `offline` Wireless ADB Socket Auto-Recovery (Linux)**: Added automatic `adb disconnect` + `adb connect` recovery in `99-seamless-adb.sh` and `99-seamless-ftp.sh` when `adb devices` reports an `offline` TCP socket, matching Windows behavior.
+- **Directed Subnet Broadcast Discovery (Linux)**: Updated `seamless-discover.py` to broadcast `SEAMLESS_DISCOVER` to the `/24` directed subnet broadcast address alongside `255.255.255.255`.
 
 ---
 
 ### Release Assets
-1. **`SeamlessConnect.apk`**: Native Android companion app with Material Design OLED dark theme and 1-tap MAC authorization.
-2. **`seamless_connect_magisk.zip`**: Magisk / KernelSU / APatch root module (`v1.2.1`, POSIX/LF packaged).
+1. **`SeamlessConnect.apk`**: Native Android companion app (`v1.2.2`) with Material Design OLED dark theme and 1-tap MAC authorization.
+2. **`seamless_connect_magisk.zip`**: Magisk / KernelSU / APatch root module (`v1.2.2`, POSIX/LF packaged).
 3. **`seamless_connect_windows.zip`**: Standalone Windows installation bundle (`install.ps1`, `uninstall.ps1`, and scripts).
 4. **`seamless_connect_linux.zip`**: Standalone Linux installation bundle (`install.sh`, dispatchers, and scripts).
 '@
 
-$apkAsset = "$repoDir\build\release\SeamlessConnect.apk"
-$magiskAsset = "$repoDir\build\release\seamless_connect_magisk.zip"
-$winAsset = "$repoDir\build\release\seamless_connect_windows.zip"
-$linuxAsset = "$repoDir\build\release\seamless_connect_linux.zip"
+$apkAsset = Join-Path $repoDir "build\release\SeamlessConnect.apk"
+$magiskAsset = Join-Path $repoDir "build\release\seamless_connect_magisk.zip"
+$winAsset = Join-Path $repoDir "build\release\seamless_connect_windows.zip"
+$linuxAsset = Join-Path $repoDir "build\release\seamless_connect_linux.zip"
 
-$notesFile = "$env:TEMP\seamless_release_notes_v121.md"
+$notesFile = Join-Path $env:TEMP "seamless_release_notes_v122.md"
 [System.IO.File]::WriteAllText($notesFile, $releaseNotes, (New-Object System.Text.UTF8Encoding($false)))
 
-Write-Host "`nPublishing GitHub Release v1.2.1 with all 4 assets..." -ForegroundColor Yellow
-gh release create "v1.2.1" `
+Write-Host "`nPublishing GitHub Release v1.2.2 with all 4 assets..." -ForegroundColor Yellow
+gh release create "v1.2.2" `
     "$apkAsset" `
     "$magiskAsset" `
     "$winAsset" `
@@ -89,8 +86,8 @@ $ghExit = $LASTEXITCODE
 Remove-Item $notesFile -Force -ErrorAction SilentlyContinue
 
 if ($ghExit -eq 0) {
-    Write-Host "`nRelease v1.2.1 published successfully to GitHub!" -ForegroundColor Green
-    Write-Host "View release: https://github.com/SreeHz/seamless-connect/releases/tag/v1.2.1" -ForegroundColor Cyan
+    Write-Host "`nRelease v1.2.2 published successfully to GitHub!" -ForegroundColor Green
+    Write-Host "View release: https://github.com/SreeHz/seamless-connect/releases/tag/v1.2.2" -ForegroundColor Cyan
 } else {
     Write-Warning "Could not publish release automatically. You can publish manually from GitHub web."
     exit $ghExit

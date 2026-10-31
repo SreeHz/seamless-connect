@@ -18,7 +18,7 @@ def fix_ownership(path, home_dir):
 
 def update_gtk_bookmarks(home_dir, gateway, port):
     gtk_path = os.path.join(home_dir, ".config", "gtk-3.0", "bookmarks")
-    target_entry = f"ftp://phone:phone@{gateway}:{port}/ Phone (FTP)"
+    target_entry = f"ftp://anonymous@{gateway}:{port}/ Phone (FTP)"
     
     os.makedirs(os.path.dirname(gtk_path), exist_ok=True)
     fix_ownership(os.path.dirname(gtk_path), home_dir)
@@ -46,7 +46,7 @@ def update_gtk_bookmarks(home_dir, gateway, port):
 def update_dolphin_places(home_dir, gateway, port):
     places_dir = os.path.join(home_dir, ".local", "share")
     places_path = os.path.join(places_dir, "user-places.xbel")
-    new_href = f"ftp://phone:phone@{gateway}:{port}/"
+    new_href = f"ftp://anonymous@{gateway}:{port}/"
 
     # If file doesn't exist, create standard XBEL template
     if not os.path.exists(places_path):
