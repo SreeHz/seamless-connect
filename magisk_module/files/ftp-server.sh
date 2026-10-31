@@ -1,8 +1,8 @@
 #!/system/bin/sh
 # ftp-server.sh — Seamless Connect Daemon
 # Secure BusyBox FTP server locked to authorized laptop MAC addresses via iptables.
-# Supports multiple authorized MACs, dynamic interface auto-detection, watchdog auto-teardown,
-# and automatic Android MediaStore rescan.
+# Supports multiple authorized MACs, dynamic interface auto-detection (including dual Wi-Fi + Hotspot),
+# watchdog auto-teardown, and automatic Android MediaStore rescan.
 
 CONF_DIR="/data/adb/seamless_connect"
 CONF_FILE="$CONF_DIR/seamless.conf"
@@ -39,14 +39,34 @@ find_busybox() {
     return 1
 }
 
+get_authorized_macs() {
+    if [ -f "$MACS_FILE" ]; then
+        grep -v '^[[:space:]]*#' "$MACS_FILE" | grep -v '^[[:space:]]*$' | awk '{print tolower($1)}'
+    fi
+}
+
 detect_iface() {
     if [ -n "$IFACE" ] && [ "$IFACE" != "auto" ]; then
         echo "$IFACE"
         return 0
     fi
     local detected=""
-    # Check routing table for active tether subnet route
-    detected=$(ip -4 route show 2>/dev/null | awk '!/default/ && !/rmnet/ && !/lo/ && /src/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | grep -E 'wlan|ap|swlan' | head -n 1)
+    # 1. Prefer the interface where an authorized MAC is actively present in ARP/neighbor table
+    local macs=$(get_authorized_macs)
+    if [ -n "$macs" ]; then
+        for mac in $macs; do
+            detected=$(ip neigh show 2>/dev/null | awk -v m="$mac" 'tolower($0) ~ tolower(m) {for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
+            if [ -n "$detected" ]; then
+                echo "$detected"
+                return 0
+            fi
+        done
+    fi
+    # 2. Prefer SoftAP / Hotspot interface (wlan2, wlan1, ap0, swlan0) over client wlan0 when dual Wi-Fi is active
+    detected=$(ip -4 route show 2>/dev/null | awk '!/default/ && !/rmnet/ && !/lo/ && /src/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | grep -E '^(ap|swlan|wlan[1-9])' | head -n 1)
+    if [ -z "$detected" ]; then
+        detected=$(ip -4 route show 2>/dev/null | awk '!/default/ && !/rmnet/ && !/lo/ && /src/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | grep -E '^(wlan|ap|swlan)' | head -n 1)
+    fi
     if [ -z "$detected" ]; then
         detected=$(ip link show 2>/dev/null | grep -E '^[0-9]+: (wlan|ap|swlan)[0-9]' | grep -i 'state UP' | awk -F': ' '{print $2}' | head -n 1)
     fi
@@ -56,39 +76,52 @@ detect_iface() {
 ACTIVE_IFACE=$(detect_iface)
 BB=$(find_busybox)
 
-get_authorized_macs() {
-    if [ -f "$MACS_FILE" ]; then
-        grep -v '^[[:space:]]*#' "$MACS_FILE" | grep -v '^[[:space:]]*$' | awk '{print tolower($1)}'
-    fi
-}
-
 add_firewall() {
     local macs=$(get_authorized_macs)
+    # Insert global DROP on FTP port first (pushed down below ACCEPT rules as we insert at 1)
+    # This ensures port 2121 is closed on ALL interfaces (including public Wi-Fi & cellular) except whitelisted MACs
+    iptables -I INPUT 1 -p tcp --dport "$PORT" -j DROP
+    iptables -I INPUT 1 -i lo -p tcp --dport "$PORT" -j ACCEPT
+
     if [ -z "$macs" ]; then
         log "WARNING: No authorized MAC addresses configured in $MACS_FILE! Locking to localhost only."
-        iptables -I INPUT 1 -i "$ACTIVE_IFACE" -p tcp --dport "$PORT" -j DROP
         return 0
     fi
 
-    # Insert ACCEPT rules for each authorized MAC
-    for mac in $macs; do
-        iptables -I INPUT 1 -i "$ACTIVE_IFACE" -p tcp --dport "$PORT" -m mac --mac-source "$mac" -j ACCEPT
-        iptables -I INPUT 1 -i "$ACTIVE_IFACE" -m mac --mac-source "$mac" -j ACCEPT
-    done
-    # Block everyone else on this port
-    iptables -A INPUT -i "$ACTIVE_IFACE" -p tcp --dport "$PORT" -j DROP
+    if [ -n "$IFACE" ] && [ "$IFACE" != "auto" ]; then
+        for mac in $macs; do
+            iptables -I INPUT 1 -i "$ACTIVE_IFACE" -p tcp --dport "$PORT" -m mac --mac-source "$mac" -j ACCEPT
+            iptables -I INPUT 1 -i "$ACTIVE_IFACE" -m mac --mac-source "$mac" -j ACCEPT
+        done
+    else
+        for mac in $macs; do
+            iptables -I INPUT 1 -p tcp --dport "$PORT" -m mac --mac-source "$mac" -j ACCEPT
+            iptables -I INPUT 1 -m mac --mac-source "$mac" -j ACCEPT
+        done
+    fi
 }
 
 del_firewall() {
+    local saved_iface=""
+    [ -f "$STATE" ] && saved_iface=$(. "$STATE" 2>/dev/null; echo "$IFACE")
     local macs=$(get_authorized_macs)
     if [ -n "$macs" ]; then
         for mac in $macs; do
-            while iptables -D INPUT -i "$ACTIVE_IFACE" -p tcp --dport "$PORT" -m mac --mac-source "$mac" -j ACCEPT 2>/dev/null; do :; done
-            while iptables -D INPUT -i "$ACTIVE_IFACE" -m mac --mac-source "$mac" -j ACCEPT 2>/dev/null; do :; done
+            while iptables -D INPUT -p tcp --dport "$PORT" -m mac --mac-source "$mac" -j ACCEPT 2>/dev/null; do :; done
+            while iptables -D INPUT -m mac --mac-source "$mac" -j ACCEPT 2>/dev/null; do :; done
+            for ifc in $ACTIVE_IFACE $saved_iface wlan0 wlan1 wlan2 ap0 swlan0; do
+                [ -z "$ifc" ] && continue
+                while iptables -D INPUT -i "$ifc" -p tcp --dport "$PORT" -m mac --mac-source "$mac" -j ACCEPT 2>/dev/null; do :; done
+                while iptables -D INPUT -i "$ifc" -m mac --mac-source "$mac" -j ACCEPT 2>/dev/null; do :; done
+            done
         done
     fi
-    # Also clean up DROP rule
-    while iptables -D INPUT -i "$ACTIVE_IFACE" -p tcp --dport "$PORT" -j DROP 2>/dev/null; do :; done
+    while iptables -D INPUT -i lo -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null; do :; done
+    while iptables -D INPUT -p tcp --dport "$PORT" -j DROP 2>/dev/null; do :; done
+    for ifc in $ACTIVE_IFACE $saved_iface wlan0 wlan1 wlan2 ap0 swlan0; do
+        [ -z "$ifc" ] && continue
+        while iptables -D INPUT -i "$ifc" -p tcp --dport "$PORT" -j DROP 2>/dev/null; do :; done
+    done
 }
 
 media_scan_if_uploads() {
@@ -111,8 +144,13 @@ media_scan_if_uploads() {
 
 connected_mac_ip() {
     local target_mac="$1"
-    ip neigh show dev "$ACTIVE_IFACE" 2>/dev/null \
-        | awk -v m="$target_mac" 'tolower($0) ~ tolower(m) {print $1; exit}'
+    if [ -n "$IFACE" ] && [ "$IFACE" != "auto" ]; then
+        ip -4 neigh show dev "$ACTIVE_IFACE" 2>/dev/null \
+            | awk -v m="$target_mac" 'tolower($0) ~ tolower(m) {print $1; exit}'
+    else
+        ip -4 neigh show 2>/dev/null \
+            | awk -v m="$target_mac" 'tolower($0) ~ tolower(m) {print $1; exit}'
+    fi
 }
 
 is_laptop_present() {
@@ -120,8 +158,14 @@ is_laptop_present() {
     [ -z "$macs" ] && return 1
 
     for mac in $macs; do
-        if ip neigh show dev "$ACTIVE_IFACE" 2>/dev/null | grep -qi "$mac"; then
-            return 0
+        if [ -n "$IFACE" ] && [ "$IFACE" != "auto" ]; then
+            if ip neigh show dev "$ACTIVE_IFACE" 2>/dev/null | grep -qi "$mac"; then
+                return 0
+            fi
+        else
+            if ip neigh show 2>/dev/null | grep -qi "$mac"; then
+                return 0
+            fi
         fi
         local ip=$(connected_mac_ip "$mac")
         if [ -n "$ip" ] && ping -c1 -W2 "$ip" >/dev/null 2>&1; then
@@ -151,11 +195,12 @@ start() {
         return 1
     fi
     stop
+    ACTIVE_IFACE=$(detect_iface)
     add_firewall
     touch "$SCAN_MARKER"
-    "$BB" tcpsvd -vE 0.0.0.0 "$PORT" "$BB" ftpd -w -A / >/dev/null 2>&1 &
+    "$BB" tcpsvd -vE 0.0.0.0 "$PORT" "$BB" ftpd -w -A / </dev/null >/dev/null 2>&1 &
     TCPSVD_PID=$!
-    "$0" watchdog >/dev/null 2>&1 &
+    "$0" watchdog </dev/null >/dev/null 2>&1 &
     WATCHDOG_PID=$!
 
     mkdir -p "$(dirname "$STATE")"

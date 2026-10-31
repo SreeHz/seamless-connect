@@ -80,15 +80,8 @@ if ! connected; then
 fi
 
 # Start (or refresh) phone-side FTP server
-OUT=$(adb_user -s "${PHONE_IP}:5555" shell su -c "
-    if [ -x /data/adb/seamless_connect/ftp-server.sh ]; then
-        /data/adb/seamless_connect/ftp-server.sh start
-    elif [ -x /data/adb/ftp-server.sh ]; then
-        /data/adb/ftp-server.sh start
-    else
-        echo 'Seamless FTP script not found on device'
-    fi
-" 2>&1)
+# Pass a single properly quoted string to adb shell so remote /system/bin/sh keeps the su -c payload intact
+OUT=$(adb_user -s "${PHONE_IP}:5555" shell "su -c 'if command -v seamless-ctl >/dev/null 2>&1; then seamless-ctl start; elif [ -x /data/adb/seamless_connect/ftp-server.sh ]; then /data/adb/seamless_connect/ftp-server.sh start; elif [ -x /data/adb/ftp-server.sh ]; then /data/adb/ftp-server.sh start; else echo Seamless FTP script not found on device; fi'" 2>&1)
 log "ftp-server start on ${PHONE_IP}: ${OUT}"
 
 # Update Dolphin and GTK bookmarks with current phone IP

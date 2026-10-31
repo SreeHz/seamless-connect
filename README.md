@@ -173,7 +173,7 @@ Seamless Connect is designed from the ground up to be independent of phone OEM s
 
 **Windows Components & Integrations**:
 - **Trigger Engine**: Native Windows Event Log trigger (`Microsoft-Windows-NetworkProfile/Operational` Event 10000). Zero CPU/RAM idle footprint.
-- **File Explorer (NetHood Integration)**: Automatically updates `Phone (FTP).lnk` in `Network Shortcuts` (This PC / Network Locations) and on Desktop with real-time phone IP and native mobile device icon (`shell32.dll,194`).
+- **File Explorer (NetHood Integration)**: Automatically creates/updates a native Windows Shell Folder Shortcut (`Phone (FTP)`) in `Network Shortcuts` (*This PC → Network locations*) and a Desktop shortcut with real-time phone IP and native mobile device icon (`shell32.dll,194`).
 - **Platform-Tools**: Official Google Android SDK Platform-Tools for Windows (`adb`, `fastboot`).
 
 ### Linux Compatibility

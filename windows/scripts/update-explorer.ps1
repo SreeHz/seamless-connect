@@ -1,9 +1,10 @@
 <#
 .SYNOPSIS
-    Updates Windows File Explorer Network Shortcuts with current Phone FTP endpoint.
+    Updates Windows File Explorer Network Locations with current Phone FTP endpoint.
 .DESCRIPTION
-    Dynamically registers the FTP protocol association in user registry and creates
-    robust Windows Shell (.lnk) shortcuts targeting explorer.exe with the native phone icon.
+    Creates/updates a native Windows Shell Folder Shortcut (CLSID {0AFACED1-E828-11D1-9187-B532F1E9575D})
+    under Network Shortcuts ("This PC" -> "Network locations") for direct in-place root FTP browsing
+    in File Explorer, completely immune to browser URL protocol hijacking.
 #>
 
 [CmdletBinding()]
@@ -15,33 +16,43 @@ param(
     [int]$Port = 2121,
 
     [Parameter()]
-    [string]$Username = "phone",
+    [string]$Username = "",
 
     [Parameter()]
-    [string]$Password = "phone"
+    [string]$Password = ""
 )
 
-$targetUrl = "ftp://${Username}:${Password}@${PhoneIP}:${Port}/"
-
-# 1. Register FTP URL protocol association in HKCU (No admin required)
-try {
-    $ftpKey = "HKCU:\Software\Classes\ftp"
-    if (-not (Test-Path $ftpKey)) { New-Item -Path $ftpKey -Force | Out-Null }
-    Set-ItemProperty -Path $ftpKey -Name "(Default)" -Value "URL:File Transfer Protocol" -Force
-    Set-ItemProperty -Path $ftpKey -Name "URL Protocol" -Value "" -Force
-
-    $cmdKey = "HKCU:\Software\Classes\ftp\shell\open\command"
-    if (-not (Test-Path $cmdKey)) { New-Item -Path $cmdKey -Force | Out-Null }
-    Set-ItemProperty -Path $cmdKey -Name "(Default)" -Value 'explorer.exe "%1"' -Force
-} catch {
-    Write-Verbose "Could not update HKCU FTP association: $($_.Exception.Message)"
+if (-not [string]::IsNullOrWhiteSpace($Username)) {
+    $credPart = if (-not [string]::IsNullOrWhiteSpace($Password)) { "${Username}:${Password}@" } else { "${Username}@" }
+    $targetUrl = "ftp://${credPart}${PhoneIP}:${Port}/"
+} else {
+    $targetUrl = "ftp://${PhoneIP}:${Port}/"
 }
 
-# 2. Create/Update Robust Windows Shell (.lnk) Shortcuts
-$wsh = New-Object -ComObject WScript.Shell
-$iconPath = "$env:SystemRoot\System32\shell32.dll,194"
+# 1. Ensure native Windows Explorer FTP folder view settings & clean up broken HKCU URL override
+try {
+    $hkcuFtpClass = "HKCU:\Software\Classes\ftp"
+    if (Test-Path $hkcuFtpClass) {
+        $shellFolderProp = (Get-ItemProperty -Path $hkcuFtpClass -Name "ShellFolder" -ErrorAction SilentlyContinue).ShellFolder
+        if (-not $shellFolderProp) {
+            Remove-Item -Path $hkcuFtpClass -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
 
-# A. Windows Explorer Network Locations (This PC / Network Shortcuts)
+    $ieFtpKey = "HKCU:\Software\Microsoft\Ftp"
+    if (-not (Test-Path $ieFtpKey)) { New-Item -Path $ieFtpKey -Force | Out-Null }
+    Set-ItemProperty -Path $ieFtpKey -Name "Use PASV" -Value "yes" -Force
+    Set-ItemProperty -Path $ieFtpKey -Name "Use Web Based FTP" -Value "no" -Force
+} catch {
+    Write-Verbose "Could not update HKCU FTP preferences: $($_.Exception.Message)"
+}
+
+$wsh = New-Object -ComObject WScript.Shell
+$sysRoot = if ($env:SystemRoot) { $env:SystemRoot } else { "C:\Windows" }
+$iconDll = Join-Path $sysRoot "System32\shell32.dll"
+$iconPath = "$iconDll,194"
+
+# 2. Create/Update Native Windows Network Location (Folder Shortcut) in Network Shortcuts ("This PC")
 $netHoodDir = [Environment]::GetFolderPath('NetworkShortcuts')
 if ([string]::IsNullOrWhiteSpace($netHoodDir)) {
     $netHoodDir = Join-Path $env:APPDATA 'Microsoft\Windows\Network Shortcuts'
@@ -50,30 +61,78 @@ if (-not (Test-Path $netHoodDir)) {
     New-Item -ItemType Directory -Path $netHoodDir -Force | Out-Null
 }
 
-$netShortcutPath = Join-Path $netHoodDir "Phone (FTP).lnk"
-$netLink = $wsh.CreateShortcut($netShortcutPath)
-$netLink.TargetPath = "explorer.exe"
-$netLink.Arguments = $targetUrl
-$netLink.IconLocation = $iconPath
-$netLink.Description = "Seamless Connect - Android Phone Storage (FTP)"
-$netLink.Save()
-
-# Remove legacy .url if present
+# Remove legacy non-folder shortcuts in Network Shortcuts
+Remove-Item (Join-Path $netHoodDir "Phone (FTP).lnk") -Force -ErrorAction SilentlyContinue
 Remove-Item (Join-Path $netHoodDir "Phone (FTP).url") -Force -ErrorAction SilentlyContinue
 
-# B. Desktop Shortcut for Quick Access
-$desktopDir = [Environment]::GetFolderPath('Desktop')
-if (Test-Path $desktopDir) {
-    $desktopShortcutPath = Join-Path $desktopDir "Phone (FTP).lnk"
-    $deskLink = $wsh.CreateShortcut($desktopShortcutPath)
-    $deskLink.TargetPath = "explorer.exe"
-    $deskLink.Arguments = $targetUrl
-    $deskLink.IconLocation = $iconPath
-    $deskLink.Description = "Seamless Connect - Android Phone Storage (FTP)"
-    $deskLink.Save()
+$netLocationDir = Join-Path $netHoodDir "Phone (FTP)"
+$desktopIniPath = Join-Path $netLocationDir "desktop.ini"
+$targetLnkPath  = Join-Path $netLocationDir "target.lnk"
 
-    # Remove legacy .url if present
-    Remove-Item (Join-Path $desktopDir "Phone (FTP).url") -Force -ErrorAction SilentlyContinue
+if (Test-Path $netLocationDir) {
+    & attrib.exe -R -S -H "$netLocationDir" | Out-Null
+} else {
+    New-Item -ItemType Directory -Path $netLocationDir -Force | Out-Null
 }
 
-Write-Output "Successfully updated File Explorer shortcuts for Phone (FTP) -> $targetUrl"
+if (Test-Path $desktopIniPath) {
+    & attrib.exe -R -S -H "$desktopIniPath" | Out-Null
+}
+if (Test-Path $targetLnkPath) {
+    & attrib.exe -R -S -H "$targetLnkPath" | Out-Null
+}
+
+$desktopIniContent = @"
+[.ShellClassInfo]
+CLSID2={0AFACED1-E828-11D1-9187-B532F1E9575D}
+Flags=2
+IconResource=$iconPath
+IconFile=$iconDll
+IconIndex=194
+"@
+[System.IO.File]::WriteAllText($desktopIniPath, $desktopIniContent, [System.Text.Encoding]::Unicode)
+& attrib.exe +S +H "$desktopIniPath" | Out-Null
+
+$targetLink = $wsh.CreateShortcut($targetLnkPath)
+$targetLink.TargetPath = $targetUrl
+$targetLink.IconLocation = $iconPath
+$targetLink.Description = "Seamless Connect - Android Phone Root Storage (FTP)"
+$targetLink.Save()
+
+# ReadOnly attribute on the folder tells Windows Shell to activate desktop.ini CLSID2 (Folder Shortcut)
+& attrib.exe +R "$netLocationDir" | Out-Null
+
+# 3. Create/Update Desktop Shortcut pointing to the Network Location Folder Shortcut path
+$desktopDir = [Environment]::GetFolderPath('Desktop')
+if (Test-Path $desktopDir) {
+    Remove-Item (Join-Path $desktopDir "Phone (FTP).url") -Force -ErrorAction SilentlyContinue
+
+    $desktopShortcutPath = Join-Path $desktopDir "Phone (FTP).lnk"
+    $deskLink = $wsh.CreateShortcut($desktopShortcutPath)
+    $deskLink.TargetPath = Join-Path $sysRoot "explorer.exe"
+    $deskLink.Arguments = "`"$netLocationDir`""
+    $deskLink.IconLocation = $iconPath
+    $deskLink.Description = "Seamless Connect - Android Phone Root Storage (FTP)"
+    $deskLink.Save()
+}
+
+# 4. Notify Windows Shell so open "This PC" File Explorer windows refresh immediately
+try {
+    if (-not ("SeamlessShellNotify" -as [type])) {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class SeamlessShellNotify {
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    public static extern void SHChangeNotify(int wEventId, uint uFlags, string dwItem1, string dwItem2);
+}
+"@ -ErrorAction SilentlyContinue
+    }
+    # SHCNE_UPDATEDIR = 0x00001000, SHCNF_PATHW = 0x0005, SHCNF_FLUSHNOWAIT = 0x2000
+    [SeamlessShellNotify]::SHChangeNotify(0x00001000, 0x2005, $netLocationDir, $null)
+    [SeamlessShellNotify]::SHChangeNotify(0x00001000, 0x2005, $netHoodDir, $null)
+} catch {
+    Write-Verbose "SHChangeNotify skipped: $($_.Exception.Message)"
+}
+
+Write-Output "Successfully updated File Explorer Network Location 'Phone (FTP)' -> $targetUrl"

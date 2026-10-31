@@ -1,6 +1,6 @@
 # customize.sh — Seamless Connect Magisk/KSU/APatch installer
 ui_print "****************************************"
-ui_print "*        Seamless Connect v1.0         *"
+ui_print "*        Seamless Connect v1.2.1       *"
 ui_print "*    Wireless ADB & MAC-Locked FTP     *"
 ui_print "****************************************"
 
